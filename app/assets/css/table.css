@@ -1,0 +1,226 @@
+.dashboard-container {
+  padding: 20px;
+  background-color: #f4f6f8;
+  display: flex;
+  justify-content: center;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  margin: 0 1em;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  width: 100%;
+}
+
+/* --- HEADER SECTION --- */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.subtitle {
+  margin: 4px 0 0 0;
+  font-size: 14px;
+  color: #6B7280;
+}
+
+.export-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.export-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+/* --- TABLE SECTION --- */
+.table-responsive {
+  overflow-x: auto;
+  /* Agar scroll di iOS halus (momentum scrolling) */
+  -webkit-overflow-scrolling: touch; 
+  /* Memberi border radius agar scrollbar tidak menabrak sudut card */
+  border-radius: 8px; 
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 16px;
+  background-color: #F9FAFB;
+  color: #374151;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #E5E7EB;
+  /* Mencegah header tabel turun baris (wrapping) sembarangan */
+  white-space: nowrap; 
+}
+
+.data-table td {
+  padding: 16px;
+  border-bottom: 1px solid #F3F4F6;
+  color: #4B5563;
+  /* Mencegah isi tabel berantakan saat di layar kecil */
+  white-space: nowrap; 
+}
+
+.data-table tr:hover {
+  background-color: #F9FAFB;
+}
+
+.font-bold { font-weight: 600; color: #111827; }
+.text-center { text-align: center; color: #9CA3AF; padding: 40px; }
+
+/* Specific Colors */
+.val-river { color: #2563EB; font-weight: 600; }
+.val-block { color: #16A34A; font-weight: 600; }
+.val-diff { color: #9333EA; font-weight: 600; }
+
+/* Badges */
+.badge {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap; /* Agar badge tidak pecah teksnya */
+}
+.badge-success { background-color: #D1FAE5; color: #065F46; }
+.badge-warning { background-color: #FEF3C7; color: #92400E; }
+.badge-danger { background-color: #FEE2E2; color: #991B1B; }
+
+/* --- PAGINATION SECTION --- */
+.pagination-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #E5E7EB;
+}
+
+.page-info {
+  font-size: 14px;
+  color: #6B7280;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.page-btn {
+  padding: 8px 16px;
+  border: 1px solid #D1D5DB;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #374151;
+  font-weight: 500;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #F3F4F6;
+}
+
+.page-number {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #D1D5DB;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #374151;
+}
+
+.page-number.active {
+  background-color: #3B82F6;
+  color: white;
+  border-color: #3B82F6;
+}
+
+.page-btn:hover:not(:disabled), .page-number:hover:not(.active) {
+  background-color: #F9FAFB;
+  border-color: #9CA3AF;
+}
+
+/* ========================================= */
+/* MEDIA QUERIES (RESPONSIVE)          */
+/* ========================================= */
+
+@media (max-width: 768px) {
+  /* 1. Kurangi Padding Container Utama */
+  .dashboard-container {
+    padding: 10px;
+  }
+
+  .card {
+    padding: 16px; /* Padding card lebih kecil di mobile */
+    margin: 0;     /* Hilangkan margin kiri kanan */
+  }
+
+  /* 2. Header Berubah Jadi Stack (Atas-Bawah) */
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .card-header > div {
+    width: 100%;
+  }
+
+  .export-btn {
+    width: 100%; /* Tombol jadi full width agar mudah ditekan */
+    text-align: center;
+  }
+
+  /* 3. Penyesuaian Pagination */
+  .pagination-footer {
+    flex-direction: column; /* Stack info halaman dan tombol */
+    gap: 16px;
+    align-items: center;
+    text-align: center;
+  }
+
+  .pagination-controls {
+    flex-wrap: wrap; /* Tombol boleh turun baris jika layar sangat kecil */
+    justify-content: center;
+  }
+  
+  .page-info {
+    font-size: 13px;
+  }
+
+  /* Opsional: Sembunyikan page number di layar sangat kecil, sisakan prev/next */
+  /* .page-number { display: none; } */
+  /* .page-number.active { display: flex; } */
+}
