@@ -97,7 +97,7 @@ const isLoading = computed(() => pending.value || forecastPending.value)
       }"
     >
       <!-- Header -->
-      <div class="flex justify-between mb-4">
+      <!-- <div class="flex justify-between mb-4">
         <div>
           <div class="flex items-center gap-1.5">
             <h2 class="text-lg font-black truncate max-w-[140px]">
@@ -125,18 +125,18 @@ const isLoading = computed(() => pending.value || forecastPending.value)
             {{ current.weather[0].description }}
           </p>
         </div>
-      </div>
+      </div> -->
 
       <!-- Icon -->
-      <div class="flex justify-center my-4">
+      <!-- <div class="flex justify-center my-4">
         <img
           :src="`https://openweathermap.org/img/wn/${current.weather[0].icon}@4x.png`"
           class="w-28 h-28 drop-shadow-lg select-none"
         />
-      </div>
+      </div> -->
 
       <!-- Stats -->
-      <div class="grid grid-cols-2 gap-3 mb-5">
+      <!-- <div class="grid grid-cols-2 gap-3 mb-5">
         <div
           class="flex items-center gap-3 p-3 rounded-2xl border
                  bg-slate-50 dark:bg-slate-800/50
@@ -166,7 +166,7 @@ const isLoading = computed(() => pending.value || forecastPending.value)
             </p>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <!-- Forecast -->
       <div class="pt-4 border-t border-slate-100 dark:border-slate-800">

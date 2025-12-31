@@ -1,5 +1,5 @@
 <template>
-  <div class="absolute bottom-6 left-6 z-[1000] bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl p-5 rounded-2xl border border-white/20 dark:border-gray-800/50 shadow-2xl min-w-[240px] transition-all hover:shadow-3xl hover:scale-[1.02]">
+  <div class="absolute bottom-6 left-6 z-[72] bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl p-5 rounded-2xl border border-white/20 dark:border-gray-800/50 shadow-2xl min-w-[240px] transition-all hover:shadow-3xl hover:scale-[1.02]">
     <div class="flex flex-col gap-4">
       <!-- Header -->
       <div class="flex items-center gap-3">
