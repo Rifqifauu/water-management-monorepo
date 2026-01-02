@@ -1,7 +1,10 @@
 <script setup>
 definePageMeta({ layout: false })
+useHead({
+  title: 'GIS - Water Management System'
+})
 
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { LMap, LTileLayer, LControlZoom } from '@vue-leaflet/vue-leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -17,7 +20,6 @@ import LoadingOverlay from '~/components/map/LoadingOverlay.vue'
 
 // --- 1. LOGIC LAYOUT & HEADER ---
 const colorMode = useColorMode()
-const showAfd = ref(false)
 const isOpen = ref(false) 
 const { coords, isLocating } = useLocation()
 const weather = ref(null)
@@ -57,9 +59,9 @@ const showRainOverlay = ref(false)
 const showBlok = ref(false)
 const showInfra = ref(false)
 const showWaterLevel = ref(false)
-const showGroupDAS = ref(false) // State baru untuk Group DAS
+const showGroupDAS = ref(false)
 
-// --- LOGIC LOADING LAYERS (Agar UX tidak freeze total) ---
+// --- LOGIC LOADING LAYERS ---
 const loadingLayers = ref({
   blok: false,
   infra: false,
@@ -67,17 +69,13 @@ const loadingLayers = ref({
   das: false
 })
 
-// Helper function untuk trigger loading
 const triggerLoading = (key, isActive) => {
   if (isActive) {
     loadingLayers.value[key] = true
-    // Set timeout untuk memberi waktu UI menampilkan spinner sebelum/selama rendering berat
-    // Jika data sangat besar, render geojson akan blocking thread, jadi spinner muncul sesaat sebelumnya
     setTimeout(() => { loadingLayers.value[key] = false }, 800)
   }
 }
 
-// Watcher untuk setiap toggle
 watch(showBlok, (val) => triggerLoading('blok', val))
 watch(showInfra, (val) => triggerLoading('infra', val))
 watch(showWaterLevel, (val) => triggerLoading('water', val))
@@ -91,15 +89,69 @@ watch(showBmkg, (val) => {
   if (val && !tideData.value) { fetchTide() }
 })
 
+// --- 3. LOGIC FILTERING (Afdeling & Periode) ---
+const showAfd = ref(false)
+const showPeriod = ref(false)
+
+// -- Logic Periode (Baru) --
+const currentYear = new Date().getFullYear()
+const currentMonth = new Date().getMonth() + 1 // 1-12
+
+const selectedYear = ref(currentYear)
+const selectedMonth = ref(currentMonth)
+
+const yearList = computed(() => {
+  // Generate 5 tahun ke belakang
+  return Array.from({ length: 5 }, (_, i) => currentYear - i)
+})
+
+const monthList = [
+  { id: 1, name: 'JAN' }, { id: 2, name: 'FEB' }, { id: 3, name: 'MAR' },
+  { id: 4, name: 'APR' }, { id: 5, name: 'MEI' }, { id: 6, name: 'JUN' },
+  { id: 7, name: 'JUL' }, { id: 8, name: 'AGU' }, { id: 9, name: 'SEP' },
+  { id: 10, name: 'OKT' }, { id: 11, name: 'NOV' }, { id: 12, name: 'DES' }
+]
+
+// Toggle Logic (Agar tidak tumpang tindih)
+const togglePeriodMenu = () => {
+  showPeriod.value = !showPeriod.value
+  if (showPeriod.value) showAfd.value = false
+}
+
+const toggleAfdelingMenu = () => {
+  showAfd.value = !showAfd.value
+  if (showAfd.value) showPeriod.value = false
+}
+
+// Watcher Perubahan Periode
+watch([selectedMonth, selectedYear], ([newM, newY]) => {
+  console.log(`Periode berubah ke: Bulan ${newM}, Tahun ${newY}`)
+  // TODO: Masukkan logika fetch ulang data geojson berdasarkan periode di sini
+  // contoh: fetchMapData(newM, newY)
+  
+  // Simulasi loading sebentar agar user tau ada proses
+  triggerLoading('blok', true) 
+})
+
+// -- Logic Afdeling --
 const afdelingList = ref([])      
 const selectedAfd = ref(['All'])
 
+const toggleAfdeling = (name) => {
+  if (name === 'All') { selectedAfd.value = ['All']; return }
+  let current = selectedAfd.value.filter(item => item !== 'All')
+  if (current.includes(name)) { current = current.filter(item => item !== name) } 
+  else { current.push(name) }
+  selectedAfd.value = current.length > 0 ? current : ['All']
+}
+
+// --- DATA INFRA & WATER LEVEL ---
 const infraRawData = ref(null)           
 const waterLevelRawData = ref(null) 
 const infraCategoriesList = ref([])      
 const selectedInfraCategories = ref([])  
 
-// --- DATA LEGENDA (UTK PRINT) ---
+// --- DATA LEGENDA ---
 const blokLegendItems = [
   { label: 'Aman / Normal', color: '#22c55e' },
   { label: 'Sedang', color: '#eab308' },
@@ -156,14 +208,6 @@ onMounted(async () => {
     console.error("Gagal memuat Data GeoJSON:", e)
   }
 })
-
-const toggleAfdeling = (name) => {
-  if (name === 'All') { selectedAfd.value = ['All']; return }
-  let current = selectedAfd.value.filter(item => item !== 'All')
-  if (current.includes(name)) { current = current.filter(item => item !== name) } 
-  else { current.push(name) }
-  selectedAfd.value = current.length > 0 ? current : ['All']
-}
 
 const recenterMap = () => {
   if (coords.value?.lat && mapRef.value?.leafletObject) {
@@ -283,7 +327,7 @@ const recenterMap = () => {
             class="pointer-events-auto w-[160px] sm:w-[180px] md:w-[190px] bg-white/90 sm:bg-white/80 backdrop-blur-md rounded-lg sm:rounded-xl shadow-md border border-gray-200/50"
         >
             <button
-            @click="showAfd = !showAfd"
+            @click="toggleAfdelingMenu"
             class="w-full flex items-center justify-between px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-[11px] font-semibold rounded-t-lg sm:rounded-t-xl text-gray-800 hover:bg-gray-50 transition"
             >
             <span>PILIH AFDELING</span>
@@ -294,7 +338,7 @@ const recenterMap = () => {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
             </button>
-
+            
             <div v-show="showAfd" class="p-1.5 sm:p-2 border-t border-gray-200/50">
             <div class="grid grid-cols-2 gap-1 sm:gap-1.5 max-h-[100px] sm:max-h-[120px] overflow-y-auto scrollbar-hide">
                 <button
@@ -316,6 +360,61 @@ const recenterMap = () => {
         </div>
       </div>
 
+      <div             v-if="showBlok"
+ class="absolute top-2 sm:top-4 left-2 z-[80] pointer-events-none print:hidden">
+        <div
+            class="pointer-events-auto w-[180px] sm:w-[200px] bg-white/90 sm:bg-white/80 backdrop-blur-md rounded-lg sm:rounded-xl shadow-md border border-gray-200/50"
+        >
+            <button
+            @click="togglePeriodMenu"
+            class="w-full flex items-center justify-between px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-[11px] font-semibold rounded-t-lg sm:rounded-t-xl text-gray-800 hover:bg-gray-50 transition"
+            >
+            <div class="flex flex-col items-start leading-none">
+               <span class="text-[9px] text-gray-400 font-normal">PERIODE DATA</span>
+               <span>{{ monthList[selectedMonth - 1].name }} {{ selectedYear }}</span>
+            </div>
+            <svg
+                :class="['w-3 h-3 sm:w-4 sm:h-4 text-gray-500 transition-transform duration-200', showPeriod ? 'rotate-180' : '']"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+            </button>
+            
+            <div v-show="showPeriod" class="p-2 border-t border-gray-200/50">
+               
+               <div class="mb-2">
+                 <p class="text-[9px] text-gray-400 font-bold mb-1 ml-1">TAHUN</p>
+                 <div class="flex gap-1 overflow-x-auto scrollbar-hide pb-1">
+                    <button 
+                      v-for="y in yearList" 
+                      :key="y"
+                      @click="selectedYear = y"
+                      :class="['px-2 py-1 rounded text-[10px] font-bold transition whitespace-nowrap', selectedYear === y ? 'bg-green-600 text-white shadow' : 'bg-gray-100 text-gray-600 hover:bg-gray-200']"
+                    >
+                      {{ y }}
+                    </button>
+                 </div>
+               </div>
+
+               <div>
+                 <p class="text-[9px] text-gray-400 font-bold mb-1 ml-1">BULAN</p>
+                 <div class="grid grid-cols-4 gap-1">
+                    <button
+                      v-for="m in monthList"
+                      :key="m.id"
+                      @click="selectedMonth = m.id"
+                      :class="['py-1 rounded text-[9px] font-semibold transition text-center', selectedMonth === m.id ? 'bg-green-600 text-white shadow' : 'bg-gray-100 text-gray-600 hover:bg-gray-200']"
+                    >
+                      {{ m.name }}
+                    </button>
+                 </div>
+               </div>
+            </div>
+        </div>
+      </div>
+      
+
       <ClientOnly>
           <LMap ref="mapRef" :zoom="zoom" :max-zoom="18" :center="initialCenter" :use-global-leaflet="false" class="h-full w-full z-0 print:absolute print:inset-0 print:h-screen print:w-screen" :options="{ zoomControl: false, attributionControl: false }">
             <LControlZoom position="bottomright" />
@@ -326,8 +425,13 @@ const recenterMap = () => {
 
             <GroupDASLayer v-if="showGroupDAS" />
             <AfdelingLayer />
-            <BlokLayer v-if="showBlok" :filter-afd="selectedAfd" @update-afdelings="list => afdelingList = list" />
-            
+<BlokLayer 
+  v-if="showBlok" 
+  :filter-afd="selectedAfd" 
+  :selected-month="selectedMonth" 
+  :selected-year="selectedYear"
+  @update-afdelings="list => afdelingList = list" 
+/>            
             <InfrastructureLayer 
               v-if="showInfra && infraRawData" 
               :geo-json="infraRawData"
@@ -347,6 +451,7 @@ const recenterMap = () => {
 
         <RainLegend v-if="showRainOverlay" class="print:hidden" />
         <LoadingOverlay v-if="isLocating" class="print:hidden" />
+
         <div class="hidden print:block absolute bottom-6 left-6 z-[9999] bg-white/95 p-4 rounded-lg border border-gray-400 shadow-xl max-w-xs break-inside-avoid">
             <h3 class="font-bold text-sm text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-2 mb-3">
                Legenda Peta

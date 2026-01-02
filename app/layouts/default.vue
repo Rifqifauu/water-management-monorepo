@@ -8,10 +8,20 @@
     ></div>
 
     <Sidebar 
+      :isOpen="isOpen"
+      :showBlok="true"
+      :showInfra="true"
+      :showRain="true"
+      :showWaterLevel="true"
+      :showGroupDAS="true"
+      basemap="openstreetmap"
+      :infraCategories="[]"
+      :selectedInfra="[]"
       :class="[
         isOpen ? 'translate-x-0' : '-translate-x-full',
         'fixed inset-y-0 left-0 z-[70] w-72 bg-white dark:bg-gray-900 shadow-xl transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 lg:flex'
-      ]" 
+      ]"
+      @close="isOpen = false"
     />
     
     <div class="flex-1 flex flex-col min-w-0">
@@ -85,7 +95,6 @@
 import { ref, computed, watch } from 'vue'
 
 const colorMode = useColorMode()
-// Ganti isSidebarHidden dengan ref isOpen
 const isOpen = ref(false)
 
 const { coords } = useLocation()

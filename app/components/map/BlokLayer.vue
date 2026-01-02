@@ -18,9 +18,17 @@
               <h3 class="font-black text-lg uppercase leading-none">Blok {{ feature.properties.BLOCK_NAME }}</h3>
               <span class="text-[10px] text-slate-400 font-bold uppercase">AFD {{ feature.properties.AFD_NAME }}</span>
             </div>
+            <div class="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-500 font-mono">
+               {{ selectedMonth }}/{{ selectedYear }}
+            </div>
           </div>
           
-          <div v-if="apiData[feature.properties.BLOCK_NAME.toString().trim().toUpperCase()]" class="space-y-3">
+          <div v-if="isLoading" class="py-4 text-center">
+             <div class="inline-block w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+             <p class="text-[10px] text-gray-400 mt-1">Mengambil data...</p>
+          </div>
+
+          <div v-else-if="apiData[feature.properties.BLOCK_NAME.toString().trim().toUpperCase()]" class="space-y-3">
             <div class="bg-gray-50 border border-gray-100 p-2 rounded-xl">
               <div class="flex justify-between items-center mb-1">
                 <span class="text-[9px] font-black text-gray-600 uppercase">Monitoring Harian</span>
@@ -40,7 +48,7 @@
           </div>
 
           <div v-else class="py-4 text-center">
-            <p class="text-xs text-slate-400 italic">Data monitoring belum tersedia.</p>
+            <p class="text-xs text-slate-400 italic">Data monitoring belum tersedia untuk periode ini.</p>
           </div>
         </div>
       </LPopup>
@@ -132,29 +140,31 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { LLayerGroup, LPolygon, LPopup, LTooltip, LMarker } from '@vue-leaflet/vue-leaflet'
 import L from 'leaflet' 
 import proj4 from 'proj4'
 
+// 1. TAMBAHKAN PROPS BARU
 const props = defineProps({ 
-  filterAfd: { type: Array, default: () => ['All'] } 
+  filterAfd: { type: Array, default: () => ['All'] },
+  selectedMonth: { type: Number, required: true },
+  selectedYear: { type: Number, required: true }
 })
-const emit = defineEmits(['ready', 'update-afdelings'])
 
+const emit = defineEmits(['ready', 'update-afdelings'])
 proj4.defs('EPSG:32650', '+proj=utm +zone=50 +datum=WGS84 +units=m +no_defs')
 
 // --- STATE ---
 const geoJsonData = ref(null)
 const apiData = ref({}) 
+const isLoading = ref(false) // State loading untuk fetch status
 const pointApiData = ref({})      
 const pointLoadingStates = ref({}) 
 
 // --- HELPER ICON ---
 const createPointIcon = (tindakan) => {
-  // Logic warna berdasarkan tindakan
   const color = tindakan === 'Diteruskan ke Mandor' ? '#ef4444' : '#ffffff';
-  
   return L.divIcon({
     className: '', 
     html: `
@@ -195,7 +205,7 @@ const monitoringPoints = computed(() => {
             lat: latVal,
             lng: longVal,
             blok: data.blok,
-            tindakan: c.tindakan // Menyimpan data tindakan ke dalam array titik
+            tindakan: c.tindakan
           })
         }
       })
@@ -215,18 +225,17 @@ const getPolygonKey = (feature, index) => {
   const blockName = feature.properties.BLOCK_NAME.toString().trim().toUpperCase()
   const statusData = apiData.value[blockName]
   const statusString = statusData?.status_terkini?.skoring_harian?.status || 'nodata'
-  return `${blockName}-${index}-${statusString}`
+  // Tambahkan Periode ke key agar vue merender ulang saat bulan/tahun ganti
+  return `${blockName}-${index}-${statusString}-${props.selectedMonth}-${props.selectedYear}`
 }
 
 const getStyleOptions = (feature) => {
   const blockName = feature.properties.BLOCK_NAME?.toString().trim().toUpperCase()
   const data = apiData.value[blockName]
   
-  // Pastikan ambil status dalam lowercase
   const status = data?.status_terkini?.skoring_harian?.status?.toLowerCase() || ''
-  // Ambil juga skor angka sebagai cadangan (karena Anda bilang 1 jelek, 3 bagus)
-  const skor = data?.status_terkini?.skoring_harian?.skor
-
+  
+  // Default Style (Putih Transparan - Jika tidak ada data)
   let style = { 
     color: '#f8fafc', 
     weight: 1.5, 
@@ -235,32 +244,42 @@ const getStyleOptions = (feature) => {
     className: '' 
   }
 
-  if (!status && !skor) return style
+  // Jika Loading, beri sedikit tanda (opsional)
+  if (isLoading.value) {
+     return { ...style, fillOpacity: 0.05 }
+  }
 
-  // Cek Level atau Skor (Gunakan huruf kecil di .includes)
-  // Level 3 atau Skor 1 = MERAH (Jelek)
+  if (!status) return style
+
+  // Logic Warna
   if (status.includes('3') ) { 
-    style.fillColor = '#ef4444'; 
+    style.fillColor = '#ef4444'; // Merah
     style.fillOpacity = 0.75; 
   } 
-  // Level 2 atau Skor 2 = ORANYE (Sedang)
   else if (status.includes('2') ) { 
-    style.fillColor = '#f97316'; 
+    style.fillColor = '#f97316'; // Oranye
     style.fillOpacity = 0.75; 
   } 
-  // Level 1 atau Skor 3 = HIJAU (Bagus)
   else if (status.includes('1') || ['aman', 'normal'].includes(status)) { 
-    style.fillColor = '#22c55e'; 
+    style.fillColor = '#22c55e'; // Hijau
     style.fillOpacity = 0.75; 
   }
   
   return style
 }
 
+// 2. FUNGSI FETCH UTAMA (Dengan Filter Periode)
 const fetchAllStatus = async () => {
+  isLoading.value = true
+
+
   try {
-    const res = await fetch('https://api.palmwateros-tap.com/api/gis/all-status')
+    // Tambahkan query params bulan dan tahun
+    const url = `https://api.palmwateros-tap.com/api/gis/all-status?month=${props.selectedMonth}&year=${props.selectedYear}`
+    
+    const res = await fetch(url)
     const result = await res.json()
+    
     if (result.status) {
       const mapped = {}
       result.data.forEach(item => {
@@ -270,8 +289,16 @@ const fetchAllStatus = async () => {
         }
       })
       apiData.value = mapped
+    } else {
+       // Jika API mengembalikan status false / kosong
+       apiData.value = {}
     }
-  } catch (e) { console.error("[Map] API Error:", e) }
+  } catch (e) { 
+     console.error("[Map] API Error:", e)
+     apiData.value = {}
+  } finally {
+     isLoading.value = false
+  }
 }
 
 const handlePointClick = async (point, e) => {
@@ -300,6 +327,11 @@ const handlePointClick = async (point, e) => {
   }
 }
 
+// 3. WATCHER PERUBAHAN PERIODE
+watch(() => [props.selectedMonth, props.selectedYear], () => {
+    fetchAllStatus()
+}, { immediate: true }) // immediate true = jalankan juga saat mounted pertama kali
+
 onMounted(async () => {
   try {
     const res = await fetch('/Blok.json')
@@ -323,7 +355,7 @@ onMounted(async () => {
     geoJsonData.value = data
     emit('ready', data)
     
-    await fetchAllStatus()
+    // fetchAllStatus() // Tidak perlu dipanggil manual karena sudah ada di Watcher { immediate: true }
     
   } catch (e) { console.error("Map Init Error:", e) }
 })
