@@ -1,6 +1,6 @@
 <template>
   <aside 
-    class="fixed inset-y-0 left-0 z-1000 flex flex-col h-screen bg-white border-r border-gray-200 dark:bg-gray-900 dark:border-gray-800 transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none
+    class="fixed inset-y-0 left-0 z-[1000] flex flex-col h-screen bg-white border-r border-gray-200 dark:bg-gray-900 dark:border-gray-800 transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none
     w-[85vw] max-w-[320px] sm:w-80 lg:w-72 lg:relative lg:translate-x-0 print:hidden"
     :class="isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
   >
@@ -66,8 +66,9 @@
                 <div class="text-[8px] sm:text-[9px] text-gray-400 truncate">Polygon kebun</div>
               </div>
             </div>
-            <div @click.stop class="flex-shrink-0">
-                <UToggle :model-value="showBlok" :disabled="loadingStates.blok" @update:model-value="$emit('update:showBlok', $event)" size="sm" color="green" />
+            <div class="relative inline-flex items-center cursor-pointer" @click.stop>
+              <input type="checkbox" :checked="showBlok" class="sr-only peer" @change="$emit('update:showBlok', !showBlok)" :disabled="loadingStates.blok">
+              <div class="w-8 h-4 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-600"></div>
             </div>
           </div>
 
@@ -90,12 +91,13 @@
                   <div class="text-[8px] sm:text-[9px] text-gray-400 truncate">Jembatan, PVC, NF</div>
                 </div>
               </div>
-              <div @click.stop class="flex-shrink-0">
-                 <UToggle :model-value="showInfra" :disabled="loadingStates.infra" @update:model-value="$emit('update:showInfra', $event)" size="sm" color="primary" />
+              <div class="relative inline-flex items-center cursor-pointer" @click.stop>
+                <input type="checkbox" :checked="showInfra" class="sr-only peer" @change="$emit('update:showInfra', !showInfra)" :disabled="loadingStates.infra">
+                <div class="w-8 h-4 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary-600"></div>
               </div>
             </div>
 
-            <div v-if="showInfra && !loadingStates.infra" class="px-2 sm:px-3 pb-2 sm:pb-3 pt-1 border-t border-gray-100 dark:border-gray-700/50 mt-1 animate-fade-in">
+            <div v-if="showInfra && !loadingStates.infra" class="px-2 sm:px-3 pb-2 sm:pb-3 pt-1 border-t border-gray-100 dark:border-gray-700/50 mt-1">
               <div class="flex items-center justify-between mb-2 mt-1">
                 <span class="text-[8px] sm:text-[9px] font-bold text-gray-400 uppercase tracking-wider">Filter Tipe</span>
                 <button @click="toggleAllInfra" class="text-[8px] sm:text-[9px] font-bold text-primary-500 hover:text-primary-600 transition-colors">
@@ -155,8 +157,9 @@
                   <div class="text-[8px] sm:text-[9px] text-gray-400 truncate">Tinggi & Status</div>
                 </div>
               </div>
-              <div @click.stop class="flex-shrink-0">
-                 <UToggle :model-value="showWaterLevel" :disabled="loadingStates.water" @update:model-value="$emit('update:showWaterLevel', $event)" size="sm" color="cyan" />
+              <div class="relative inline-flex items-center cursor-pointer" @click.stop>
+                <input type="checkbox" :checked="showWaterLevel" class="sr-only peer" @change="$emit('update:showWaterLevel', !showWaterLevel)" :disabled="loadingStates.water">
+                <div class="w-8 h-4 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-cyan-600"></div>
               </div>
             </div>
           </div>
@@ -179,8 +182,9 @@
                 <div class="text-[8px] sm:text-[9px] text-gray-400 truncate">Zonasi area tangkapan air</div>
               </div>
             </div>
-            <div @click.stop class="flex-shrink-0">
-                <UToggle :model-value="showGroupDAS" :disabled="loadingStates.das" @update:model-value="$emit('update:showGroupDAS', $event)" size="sm" color="orange" />
+            <div class="relative inline-flex items-center cursor-pointer" @click.stop>
+              <input type="checkbox" :checked="showGroupDAS" class="sr-only peer" @change="$emit('update:showGroupDAS', !showGroupDAS)" :disabled="loadingStates.das">
+              <div class="w-8 h-4 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-orange-600"></div>
             </div>
           </div>
 
@@ -194,14 +198,16 @@
                 <div class="text-[8px] sm:text-[9px] text-gray-400 truncate">Curah hujan live</div>
               </div>
             </div>
-            <div @click.stop class="flex-shrink-0">
-               <UToggle :model-value="showRain" @update:model-value="$emit('update:showRain', $event)" size="sm" color="blue" />
+            <div class="relative inline-flex items-center cursor-pointer" @click.stop>
+              <input type="checkbox" :checked="showRain" class="sr-only peer" @change="$emit('update:showRain', !showRain)">
+              <div class="w-8 h-4 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
             </div>
           </div>
 
         </div>
       </div>
-                  <TideWidget></TideWidget>
+      
+      <TideWidget />
 
     </nav>
 
@@ -232,6 +238,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import TideWidget from './TideWidget.vue';
+
 const props = defineProps<{
   isOpen: boolean; 
   showBlok: boolean;
@@ -244,8 +251,7 @@ const props = defineProps<{
   selectedInfra: string[];
   showBmkg?: boolean;
   loadingBmkg?: boolean;
-  coords?: any;
-  // --- PROP BARU UNTUK LOADING ---
+  // --- PROP UNTUK LOADING ---
   loadingStates?: {
      blok: boolean,
      infra: boolean,
@@ -254,7 +260,7 @@ const props = defineProps<{
   }
 }>()
 
-// DEFAULT PROP BIAR GA ERROR KALAU PARENT BELUM KIRIM
+// Default value untuk loadingStates jika undefined
 const loadingStates = computed(() => props.loadingStates || { blok: false, infra: false, water: false, das: false })
 
 const emit = defineEmits([
@@ -312,20 +318,25 @@ const toggleAllInfra = () => {
   }
 }
 </script>
+
 <style scoped>
 /* Scrollbar yang lebih subtle */
-.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { 
   background-color: rgba(100, 116, 139, 0.2); 
   border-radius: 20px; 
 }
-.custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(100, 116, 139, 0.4); 
+
+/* Animasi bayangan saat sidebar muncul */
+.translate-x-0 {
+  box-shadow: 20px 0 50px -12px rgb(0 0 0 / 0.15);
 }
 
-/* Animasi halus untuk masuknya sidebar */
-.translate-x-0 {
-  box-shadow: 20px 0 50px -12px rgb(0 0 0 / 0.1);
-}
+/* Peer classes untuk custom toggle (Tailwind) */
+.peer:checked ~ .peer-checked\:bg-green-600 { background-color: #16a34a; }
+.peer:checked ~ .peer-checked\:bg-primary-600 { background-color: #0284c7; }
+.peer:checked ~ .peer-checked\:bg-cyan-600 { background-color: #0891b2; }
+.peer:checked ~ .peer-checked\:bg-orange-600 { background-color: #ea580c; }
+.peer:checked ~ .peer-checked\:bg-blue-600 { background-color: #2563eb; }
 </style>

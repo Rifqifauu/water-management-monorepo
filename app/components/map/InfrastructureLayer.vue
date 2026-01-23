@@ -1,9 +1,8 @@
 <template>
-  <LLayerGroup :key="`layer-group-${featuresToDisplay.length}-${filterKey}`">
-    
+  <LLayerGroup :key="`layer-group-infra-${featuresToDisplay.length}-${filterKey}`">
     <LMarker
       v-for="feature in featuresToDisplay"
-      :key="feature.properties.OBJECTID"
+      :key="getMarkerKey(feature)"
       :lat-lng="feature.geometry.coordinates"
       :icon="createMarkerIcon(feature)"
     >
@@ -13,7 +12,6 @@
 
       <LPopup :options="{ maxWidth: 300, minWidth: 250 }">
         <div class="font-sans text-slate-800">
-          
           <div class="flex justify-between items-start mt-8 border-b border-slate-200 pb-3 mb-3">
             <div>
               <h3 class="font-black text-sm uppercase leading-tight text-slate-800 tracking-wide">
@@ -27,7 +25,7 @@
                   Blok: <span class="text-slate-700">{{ feature.properties.BLOCK_NAME }}</span>
                 </span>
                 <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                  Skor: <span class="text-slate-700">{{ (getCurrentData(feature).skor) }}</span>
+                  Skor: <span class="text-slate-700 font-mono font-bold">{{ getCurrentData(feature).skor }}</span>
                 </span>
               </div>
             </div>
@@ -36,7 +34,7 @@
               class="px-2.5 py-1 rounded-md text-[10px] font-black uppercase text-white shadow-sm tracking-wide text-center max-w-[100px]"
               :style="{ backgroundColor: getStatusColor(getCurrentData(feature).status) }"
             >
-              {{ getCurrentData(feature).status || 'Unknown' }}
+              {{ getCurrentData(feature).status }}
             </div>
           </div>
           
@@ -55,7 +53,7 @@
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5 text-blue-500">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd" />
                   </svg>
-                  <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Terakhir Dicek</span>
+                  <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Pengamatan Terakhir</span>
                </div>
                <p class="text-xs font-mono font-bold text-blue-900 ml-5">
                   {{ formatDate(getCurrentData(feature).tanggal) }}
@@ -67,7 +65,6 @@
               <p class="text-xs font-bold text-slate-700">{{ feature.properties.YOP || '-' }}</p>
             </div>
           </div>
-
         </div>
       </LPopup>
     </LMarker>
@@ -75,7 +72,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { LLayerGroup, LMarker, LPopup, LTooltip } from '@vue-leaflet/vue-leaflet'
 import L from 'leaflet' 
 import proj4 from 'proj4'
@@ -83,171 +80,160 @@ import proj4 from 'proj4'
 const props = defineProps({ 
   geoJson: { type: Object, default: null },
   filterAfd: { type: Array, default: () => ['All'] },
-  activeCategories: { type: Array, default: () => [] }
+  activeCategories: { type: Array, default: () => [] },
+  selectedMonth: { type: [Number, Object], default: null },
+  selectedYear: { type: [Number, Object], default: null }
 })
 
 const infraStatusMap = ref({}) 
+const isLoading = ref(false)
 
-// Definisi Proyeksi UTM Zone 50 South (Kalimantan/Sebagian Indo)
 proj4.defs('EPSG:32650', '+proj=utm +zone=50 +datum=WGS84 +units=m +no_defs')
 
-onMounted(() => {
-    fetchInfraStatus()
-})
-
-const formatDate = (dateString) => {
-  if (!dateString || dateString === '-' || dateString === null) return '-'
-  const date = new Date(dateString)
-  if (isNaN(date.getTime())) return dateString 
+/**
+ * Mendapatkan data terbaru untuk marker tertentu dari hasil mapping API
+ */
+const getCurrentData = (feature) => {
+  const rawId = feature.properties.OBJECTID
+  if (!rawId) return { status: 'Unknown', tanggal: '-', foto_path: null, skor: '0.00' }
   
-  return new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric', month: 'short', year: 'numeric'
-  }).format(date)
+  const id = String(rawId).trim()
+  const apiData = infraStatusMap.value[id]
+  
+  if (apiData) return apiData
+  
+  // Jika tidak ada data di periode terpilih
+  return { 
+    status: props.selectedMonth ? 'Tidak Ada Laporan' : 'Belum Ada Data', 
+    tanggal: '-', 
+    foto_path: null, 
+    skor: '0.00' 
+  }
+}
+
+const getMarkerKey = (feature) => {
+  const objId = feature.properties.OBJECTID
+  const data = getCurrentData(feature)
+  return `marker-${objId}-${data.status}-${props.selectedMonth}-${props.selectedYear}`
 }
 
 const fetchInfraStatus = async () => {
+  isLoading.value = true
   try {
-    const response = await fetch('https://api.palmwateros-tap.com/api/gis/cek-infra') 
+    const m = props.selectedMonth || ''
+    const y = props.selectedYear || ''
+    
+    const response = await fetch(`https://api.palmwateros-tap.com/api/gis/cek-infra?month=${m}&year=${y}`) 
     const result = await response.json()
     const mapping = {}
-    const items = result.data || result 
+    const items = result.data || [] 
+    
     if (Array.isArray(items)) {
-        items.forEach(item => {
-            if (item.id_objek) {
-                mapping[String(item.id_objek)] = { 
-                  status: item.status, 
-                  tanggal: item.tanggal,
-                  skor: item.skor,
-                  foto_path: item.foto_path
-                }
-            }
-        })
+      items.forEach(item => {
+        if (item.id_objek) {
+          // NORMALISASI: String + Trim agar matching ID akurat
+          const key = String(item.id_objek).trim()
+          mapping[key] = { 
+            status: item.status, 
+            tanggal: item.tanggal,
+            skor: item.skor,
+            foto_path: item.foto_path
+          }
+        }
+      })
     }
     infraStatusMap.value = mapping
   } catch (e) {
     console.error("Gagal fetch infra status:", e)
+  } finally {
+    isLoading.value = false
   }
 }
 
-const getCurrentData = (feature) => {
-    if (!feature?.properties?.OBJECTID) return { status: 'Unknown', tanggal: '-', foto_path: null }
-    const id = String(feature.properties.OBJECTID)
-    const apiData = infraStatusMap.value[id]
+watch(
+  () => [props.selectedMonth, props.selectedYear], 
+  () => { fetchInfraStatus() }, 
+  { immediate: true }
+)
+
+const formatDate = (dateString) => {
+  if (!dateString || dateString === '-' || dateString === null) return '-'
+  const parts = dateString.split('-')
+  
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10)
+    const month = parseInt(parts[1], 10) - 1 
+    const year = parseInt(parts[2], 10)
     
-    if (apiData) return { 
-      status: apiData.status, 
-      tanggal: apiData.tanggal, 
-      foto_path: apiData.foto_path,
-      skor: apiData.skor
+    const date = new Date(year, month, day)
+    
+    if (!isNaN(date.getTime())) {
+      return new Intl.DateTimeFormat('id-ID', { 
+        day: 'numeric', 
+        month: 'short', 
+        year: 'numeric' 
+      }).format(date)
     }
-    return { status: 'Belum Ada Laporan', tanggal: '-', foto_path: null }
-}
-
-// Helper untuk key unik LayerGroup
-const filterKey = computed(() => {
-  return props.filterAfd.join('-') + '-' + props.activeCategories.join('-')
-})
-
-const featuresToDisplay = computed(() => {
-  if (!props.geoJson || !props.geoJson.features) return []
-
-  // Normalisasi Filter agar case-insensitive
-  const cleanFilterAfd = props.filterAfd.map(a => a.toString().trim().toUpperCase())
-  const isAll = cleanFilterAfd.includes('ALL')
-
-  const filtered = props.geoJson.features.filter(f => {
-    // Ambil property dengan aman
-    const rawAfd = f.properties.AFD_NAME || ''
-    const dataAfd = rawAfd.toString().trim().toUpperCase()
-    
-    // Cek Logic
-    const matchAfd = isAll || cleanFilterAfd.includes(dataAfd)
-    const matchCat = props.activeCategories.includes(f.properties.KATEGORY)
-    
-    return matchAfd && matchCat
-  })
-
-  // Mapping Koordinat UTM ke LatLng
-  return filtered.map(f => {
-    const feature = { ...f, geometry: { ...f.geometry, coordinates: [...f.geometry.coordinates] } }
-    const coords = feature.geometry.coordinates
-    
-    // Jika koordinat > 180, asumsi UTM, perlu konversi
-    if (coords[0] > 180 || coords[1] > 180) {
-       const r = proj4('EPSG:32650', 'EPSG:4326', [parseFloat(coords[0]), parseFloat(coords[1])])
-       // Leaflet pakai [Lat, Lng], GeoJSON [Lng, Lat], hasil proj4 biasanya [Lng, Lat]
-       // Pastikan urutan sesuai library vue-leaflet (biasanya LatLng)
-       feature.geometry.coordinates = [r[1], r[0]] 
-    }
-    return feature
-  })
-})
-
-const getCategoryColor = (kategori) => {
-  const cat = kategori?.toString().toUpperCase() || ''
-  if (cat.includes('JEMBATAN KAYU')) return '#59281E' 
-  if (cat.includes('PVC')) return '#06b6d4' 
-  if (cat.includes('NF')) return '#64748b' 
-  return '#64748b' 
+  }
+  return dateString
 }
 
 const getStatusColor = (kondisi) => {
   const status = kondisi?.toString().trim().toLowerCase() || ''
-  if (status.includes('1')|| status === 'baik') return '#22c55e'
-  if (status.includes('2') || status === 'perawatan') return '#f97316'
-  if (status.includes('3') || status === 'rusak' || status === 'rusak berat') return '#ef4444'
+  if (status.includes('baik') || status.includes('1')) return '#22c55e'
+  if (status.includes('perawatan') || status.includes('2')) return '#f97316'
+  if (status.includes('rusak') || status.includes('3')) return '#ef4444'
   return '#94a3b8' 
 }
 
 const createMarkerIcon = (feature) => {
-  const category = feature.properties.KATEGORY
-  const color = getCategoryColor(category)
+  const cat = (feature.properties.KATEGORY || '').toString().toUpperCase()
+  let color = '#64748b'
+  if (cat.includes('JEMBATAN KAYU')) color = '#59281E' 
+  else if (cat.includes('PVC')) color = '#06b6d4' 
+  else if (cat.includes('NF')) color = '#64748b' 
 
-  const html = `
-    <div 
-      class="w-3 h-3 rounded-full border border-white shadow-sm hover:scale-125 transition-transform" 
-      style="background-color: ${color};"
-    ></div>
-  `
-  return L.divIcon({
-    className: '', 
-    html: html,
-    iconSize: [12, 12],   
-    iconAnchor: [6, 6],   
-    popupAnchor: [0, -6]  
-  })
+  const html = `<div class="w-3 h-3 rounded-full border border-white shadow-sm hover:scale-125 transition-transform" style="background-color: ${color};"></div>`
+  return L.divIcon({ className: '', html: html, iconSize: [12, 12], iconAnchor: [6, 6], popupAnchor: [0, -6] })
 }
+
+const filterKey = computed(() => props.filterAfd.join('-') + '-' + props.activeCategories.join('-'))
+
+const featuresToDisplay = computed(() => {
+  if (!props.geoJson || !props.geoJson.features) return []
+  const cleanFilterAfd = props.filterAfd.map(a => a.toString().trim().toUpperCase())
+  const isAllAfd = cleanFilterAfd.includes('ALL')
+
+  return props.geoJson.features
+    .filter(f => {
+      const dataAfd = (f.properties.AFD_NAME || '').toString().trim().toUpperCase()
+      const matchAfd = isAllAfd || cleanFilterAfd.includes(dataAfd)
+      const matchCat = props.activeCategories.includes(f.properties.KATEGORY)
+      
+      if (!matchAfd || !matchCat) return false
+
+      // Jika filter periode aktif, hanya tampilkan yang ada di data API periode tersebut
+      if (props.selectedMonth && props.selectedYear) {
+        const id = String(f.properties.OBJECTID).trim()
+        return infraStatusMap.value.hasOwnProperty(id)
+      }
+
+      return true
+    })
+    .map(f => {
+      const feature = { ...f, geometry: { ...f.geometry, coordinates: [...f.geometry.coordinates] } }
+      const coords = feature.geometry.coordinates
+      if (coords[0] > 180 || coords[1] > 180) {
+        const r = proj4('EPSG:32650', 'EPSG:4326', [parseFloat(coords[0]), parseFloat(coords[1])])
+        feature.geometry.coordinates = [r[1], r[0]] 
+      }
+      return feature
+    })
+})
 </script>
 
 <style>
-/* Style Popup & Tooltip */
-.leaflet-popup-content-wrapper {
-  border-radius: 12px;
-  padding: 0;
-  overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
-.leaflet-popup-content {
-  margin: 16px !important;
-  line-height: 1.4;
-}
-.leaflet-popup-tip {
-  background: white;
-}
-.leaflet-container a.leaflet-popup-close-button {
-  top: 8px; right: 8px; color: #94a3b8; font-size: 18px;
-  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.8);
-  z-index: 10;
-}
-.leaflet-container a.leaflet-popup-close-button:hover {
-  background-color: #f1f5f9; color: #475569;
-}
-.label-infra-tooltip {
-  background: rgba(0, 0, 0, 0.8) !important;
-  border: none !important;
-  color: white !important;
-  border-radius: 4px;
-}
+.leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+.leaflet-popup-content { margin: 16px !important; line-height: 1.4; }
+.label-infra-tooltip { background: rgba(0, 0, 0, 0.8) !important; border: none !important; color: white !important; border-radius: 4px; padding: 2px 6px; }
 </style>

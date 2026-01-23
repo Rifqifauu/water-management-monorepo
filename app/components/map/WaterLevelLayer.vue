@@ -1,8 +1,8 @@
 <template>
-  <LLayerGroup>
+  <LLayerGroup :key="`layer-group-wl-${finalFeatures.length}-${props.selectedMonth}`">
     <LMarker
       v-for="(item, index) in finalFeatures"
-      :key="`${item.id}-${index}`"
+      :key="getMarkerKey(item, index)"
       :lat-lng="item.latLng"
       :icon="createIcon()"
     >
@@ -31,22 +31,28 @@
             </div>
           </div>
           
-          <div v-if="item.foto_path" class="mb-2 rounded-lg overflow-hidden border border-slate-200 shadow-sm relative bg-slate-100">
-             <img 
-               :src="`https://api.palmwateros-tap.com/storage/${item.foto_path}`" 
-               alt="Kondisi Air" 
-               class="w-full h-36 object-cover"
-               @error="$event.target.style.display='none'"
-             />
+          <div v-if="isLoading && !item.tanggal" class="py-4 text-center">
+             <div class="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
 
-          <div class="bg-cyan-50 border border-cyan-100 p-2 rounded-lg mb-2">
-             <div class="flex justify-between items-center">
-                <span class="text-[9px] font-bold text-cyan-600 uppercase">Terakhir Dilaporkan</span>
-             </div>
-             <p class="text-xs font-mono font-bold text-cyan-800 mt-0.5">
-                {{ item.tanggal }}
-             </p>
+          <div v-else>
+            <div v-if="item.foto_path" class="mb-2 rounded-lg overflow-hidden border border-slate-200 shadow-sm relative bg-slate-100">
+               <img 
+                 :src="`https://api.palmwateros-tap.com/storage/${item.foto_path}`" 
+                 alt="Kondisi Air" 
+                 class="w-full h-36 object-cover"
+                 @error="$event.target.style.display='none'"
+               />
+            </div>
+
+            <div class="bg-cyan-50 border border-cyan-100 p-2 rounded-lg mb-2 shadow-sm">
+               <div class="flex justify-between items-center">
+                  <span class="text-[10px] font-bold text-cyan-600 uppercase">Laporan Terakhir:</span>
+               </div>
+               <p class="text-xs font-mono font-bold text-cyan-800 mt-0.5 ml-1">
+                  {{ item.tanggal }}
+               </p>
+            </div>
           </div>
 
           <div class="grid grid-cols-2 gap-2">
@@ -55,7 +61,7 @@
               <p class="text-[11px] font-bold text-slate-700">{{ item.afdeling }}</p>
             </div>
             <div class="bg-slate-50 p-1.5 rounded border border-slate-100">
-              <p class="text-[8px] text-slate-400 uppercase font-bold">Object ID</p>
+              <p class="text-[8px] text-slate-400 uppercase font-bold">ID Objek</p>
               <p class="text-[11px] font-bold text-slate-700">{{ item.id }}</p>
             </div>
           </div>
@@ -67,7 +73,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { LLayerGroup, LMarker, LPopup, LTooltip } from '@vue-leaflet/vue-leaflet'
 import L from 'leaflet' 
 import proj4 from 'proj4'
@@ -76,38 +82,43 @@ proj4.defs('EPSG:32650', '+proj=utm +zone=50 +datum=WGS84 +units=m +no_defs')
 
 const props = defineProps({ 
   geoJson: { type: Object, default: () => ({ features: [] }) },
-  filterAfd: { type: Array, default: () => ['All'] }
+  filterAfd: { type: Array, default: () => ['All'] },
+  selectedMonth: { type: [Number, Object], default: null },
+  selectedYear: { type: [Number, Object], default: null }
 })
 
 const waterStatusMap = ref({}) 
-const isLoading = ref(true)
+const isLoading = ref(false)
 let pollingInterval = null
 
-onMounted(() => {
-    fetchWaterStatus()
-    pollingInterval = setInterval(fetchWaterStatus, 60000)
-})
-
-onUnmounted(() => {
-    if (pollingInterval) clearInterval(pollingInterval)
-})
+// Key unik agar marker merender ulang data Popup saat periode berubah
+const getMarkerKey = (item, index) => {
+  return `wl-${item.nomor}-${item.status}-${props.selectedMonth}-${props.selectedYear}-${index}`
+}
 
 const fetchWaterStatus = async () => {
   try {
     isLoading.value = true
-    const response = await fetch('https://api.palmwateros-tap.com/api/gis/cek-water-level')
+    // Normalisasi parameter untuk API
+    const m = props.selectedMonth || ''
+    const y = props.selectedYear || ''
+    
+    const response = await fetch(`https://api.palmwateros-tap.com/api/gis/cek-water-level?month=${m}&year=${y}`)
     if (!response.ok) throw new Error(`API Error: ${response.status}`)
     const result = await response.json()
-    const items = result.data || result 
+    const items = result.data || [] 
 
     const mapping = {}
     if (Array.isArray(items)) {
         items.forEach(item => {
-            const key = String(item.no_water_level).trim()
-            mapping[key] = {
-                status: item.status, 
-                tanggal: item.tanggal,
-                foto_path: item.foto_path // Ambil foto_path dari API
+            if (item.no_water_level) {
+              // NORMALISASI: Trim agar matching ID di finalFeatures akurat
+              const key = String(item.no_water_level).trim()
+              mapping[key] = {
+                  status: item.status, 
+                  tanggal: item.tanggal,
+                  foto_path: item.foto_path
+              }
             }
         })
     }
@@ -119,12 +130,24 @@ const fetchWaterStatus = async () => {
   }
 }
 
+// Watcher untuk update data otomatis saat periode diubah
+watch(() => [props.selectedMonth, props.selectedYear], () => {
+    fetchWaterStatus()
+}, { immediate: true })
+
+// Polling update setiap 1 menit
+onMounted(() => {
+    pollingInterval = setInterval(fetchWaterStatus, 60000)
+})
+
+onUnmounted(() => {
+    if (pollingInterval) clearInterval(pollingInterval)
+})
+
 const formatDateIndo = (dateStr) => {
-    if (!dateStr) return '-'
+    if (!dateStr || dateStr === '-') return '-'
     const date = new Date(dateStr)
-    if (isNaN(date.getTime())) return '-'
-    
-    // Hapus opsi hour & minute agar hanya tanggal
+    if (isNaN(date.getTime())) return dateStr
     return new Intl.DateTimeFormat('id-ID', {
         day: '2-digit', month: 'short', year: 'numeric'
     }).format(date)
@@ -132,9 +155,9 @@ const formatDateIndo = (dateStr) => {
 
 const getStatusColor = (statusRaw) => {
   const status = statusRaw?.toString().trim().toLowerCase() || 'unknown'
-  if (status === 'good condition') return '#10b981' 
-  if (status === 'need maintenance') return '#f59e0b' 
-  if (status === 'urgent condition') return '#ef4444' 
+  if (status.includes('good') || status === 'aman' || status === 'baik' || status === 'normal') return '#10b981' 
+  if (status.includes('maintenance') || status === 'sedang' || status === 'perawatan') return '#f59e0b' 
+  if (status.includes('urgent') || status === 'kritis' || status === 'rusak') return '#ef4444' 
   return '#64748b' 
 }
 
@@ -143,21 +166,36 @@ const createIcon = () => {
     className: '', 
     html: `
       <div 
-        class="w-3 h-3 rounded-full border border-white shadow-sm hover:scale-125 transition-transform" 
+        class="w-3.5 h-3.5 rounded-full border-2 border-white shadow-md hover:scale-125 transition-transform" 
         style="background-color: #1e40af;" 
       ></div>
     `,
-    iconSize: [12, 12],   
-    iconAnchor: [6, 6],   
-    popupAnchor: [0, -6]  
+    iconSize: [14, 14],   
+    iconAnchor: [7, 7],   
+    popupAnchor: [0, -7]  
   })
 }
 
 const finalFeatures = computed(() => {
   if (!props.geoJson || !props.geoJson.features) return []
 
+  const cleanFilterAfd = props.filterAfd.map(a => a.toString().trim().toUpperCase())
+  const isAllAfd = cleanFilterAfd.includes('ALL')
+
+  // Filtering titik berdasarkan Afdeling dan Periode
   const filteredGeo = props.geoJson.features.filter(f => {
-    return props.filterAfd.includes('All') || props.filterAfd.includes(f.properties.Afdeling)
+    const dataAfd = (f.properties.Afdeling || '').toString().trim().toUpperCase()
+    const matchAfd = isAllAfd || cleanFilterAfd.includes(dataAfd)
+    
+    if (!matchAfd) return false
+
+    // Jika filter bulan dipilih, hanya tampilkan yang ada datanya di API bulan itu
+    if (props.selectedMonth && props.selectedYear) {
+      const nomorKey = String(f.properties.Nomor).trim()
+      return waterStatusMap.value.hasOwnProperty(nomorKey)
+    }
+
+    return true
   })
 
   return filteredGeo.map(f => {
@@ -165,8 +203,8 @@ const finalFeatures = computed(() => {
     const rawCoords = f.geometry.coordinates
     const nomorKey = String(propsRaw.Nomor).trim() 
     
-    // Default object jika data API belum ada
-    const apiData = waterStatusMap.value[nomorKey] || { status: 'Unknown', tanggal: null, foto_path: null }
+    // Ambil data dari API Map hasil fetch
+    const apiData = waterStatusMap.value[nomorKey] || { status: 'Tidak Ada Laporan', tanggal: null, foto_path: null }
 
     let finalLatLng = [0, 0]
     if (rawCoords[0] > 180 || rawCoords[1] > 180) {
@@ -180,12 +218,12 @@ const finalFeatures = computed(() => {
       id: propsRaw.OBJECTID,
       nomor: propsRaw.Nomor,
       afdeling: propsRaw.Afdeling || '-',
-      groupDas: propsRaw.Group_DAS,
-      blok: propsRaw.Blok,
+      groupDas: propsRaw.Group_DAS || '-',
+      blok: propsRaw.Blok || '-',
       latLng: finalLatLng,
       status: apiData.status,
       tanggal: formatDateIndo(apiData.tanggal),
-      foto_path: apiData.foto_path // Teruskan foto ke template
+      foto_path: apiData.foto_path
     }
   })
 })
@@ -200,10 +238,5 @@ const finalFeatures = computed(() => {
   font-size: 10px;
   padding: 2px 8px;
   border-radius: 4px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
-}
-.label-water-tooltip::before {
-  border-top-color: rgba(15, 23, 42, 0.95) !important;
 }
 </style>

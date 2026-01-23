@@ -84,7 +84,7 @@
               <div class="mt-2 text-right">
                   <span 
                     class="text-[10px] font-bold px-2 py-1 rounded"
-                    :class="point.tindakan === 'Diteruskan ke Mandor' ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-900'"
+                    :class="[ 'Eskalasi'].includes(point.tindakan) ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-900'"
                   >
                      Tindakan: {{ point.tindakan || '-' }}
                   </span>
@@ -145,26 +145,35 @@ import { LLayerGroup, LPolygon, LPopup, LTooltip, LMarker } from '@vue-leaflet/v
 import L from 'leaflet' 
 import proj4 from 'proj4'
 
-// 1. TAMBAHKAN PROPS BARU
+// 1. PROPS
+
 const props = defineProps({ 
   filterAfd: { type: Array, default: () => ['All'] },
-  selectedMonth: { type: Number, required: true },
-  selectedYear: { type: Number, required: true }
+  selectedMonth: { type: [Number,Object], required: true },
+  selectedYear: { type: [Number,Object], required: true }
 })
 
 const emit = defineEmits(['ready', 'update-afdelings'])
+
+// Definisi UTM Zone 50N (Sesuaikan jika zona berbeda)
 proj4.defs('EPSG:32650', '+proj=utm +zone=50 +datum=WGS84 +units=m +no_defs')
 
-// --- STATE ---
+// --- STATE MANAGEMENT ---
 const geoJsonData = ref(null)
 const apiData = ref({}) 
-const isLoading = ref(false) // State loading untuk fetch status
+const isLoading = ref(false)
 const pointApiData = ref({})      
 const pointLoadingStates = ref({}) 
 
-// --- HELPER ICON ---
+// --- HELPER: ICON LOGIC (UPDATED) ---
 const createPointIcon = (tindakan) => {
-  const color = tindakan === 'Diteruskan ke Mandor' ? '#ef4444' : '#ffffff';
+  // Daftar tindakan yang dianggap "Urgent" (Merah)
+  const urgentActions = ['Eskalasi'];
+  
+  // Cek apakah tindakan ada dalam daftar urgent
+  const isUrgent = urgentActions.includes(tindakan);
+  const color = isUrgent ? '#ef4444' : '#ffffff';
+
   return L.divIcon({
     className: '', 
     html: `
@@ -179,7 +188,9 @@ const createPointIcon = (tindakan) => {
   })
 }
 
-// --- COMPUTED ---
+// --- COMPUTED PROPERTIES ---
+
+// Mengambil titik koordinat dari API Data
 const monitoringPoints = computed(() => {
   const points = []
   const keys = Object.keys(apiData.value)
@@ -188,6 +199,8 @@ const monitoringPoints = computed(() => {
     const data = apiData.value[blockKey]
     const listCoords = data?.status_terkini?.skoring_harian?.titik_koordinat
     const blockAfd = data.afdeling
+    
+    // Filter berdasarkan Afdeling yang dipilih
     const isVisible = props.filterAfd.includes('All') || (blockAfd && props.filterAfd.includes(blockAfd))
 
     if (listCoords && Array.isArray(listCoords) && isVisible) {
@@ -214,6 +227,7 @@ const monitoringPoints = computed(() => {
   return points
 })
 
+// Filter Polygon Blok berdasarkan Afdeling
 const filteredFeatures = computed(() => {
   if (!geoJsonData.value) return []
   if (props.filterAfd.includes('All')) return geoJsonData.value.features
@@ -221,21 +235,21 @@ const filteredFeatures = computed(() => {
 })
 
 // --- METHODS ---
+
 const getPolygonKey = (feature, index) => {
   const blockName = feature.properties.BLOCK_NAME.toString().trim().toUpperCase()
   const statusData = apiData.value[blockName]
   const statusString = statusData?.status_terkini?.skoring_harian?.status || 'nodata'
-  // Tambahkan Periode ke key agar vue merender ulang saat bulan/tahun ganti
   return `${blockName}-${index}-${statusString}-${props.selectedMonth}-${props.selectedYear}`
 }
 
+// Menentukan Warna Blok berdasarkan Status
 const getStyleOptions = (feature) => {
   const blockName = feature.properties.BLOCK_NAME?.toString().trim().toUpperCase()
   const data = apiData.value[blockName]
-  
   const status = data?.status_terkini?.skoring_harian?.status?.toLowerCase() || ''
   
-  // Default Style (Putih Transparan - Jika tidak ada data)
+  // Default Style
   let style = { 
     color: '#f8fafc', 
     weight: 1.5, 
@@ -244,39 +258,31 @@ const getStyleOptions = (feature) => {
     className: '' 
   }
 
-  // Jika Loading, beri sedikit tanda (opsional)
-  if (isLoading.value) {
-     return { ...style, fillOpacity: 0.05 }
-  }
-
+  if (isLoading.value) return { ...style, fillOpacity: 0.05 }
   if (!status) return style
 
-  // Logic Warna
-  if (status.includes('3') ) { 
-    style.fillColor = '#ef4444'; // Merah
+  // Logic Pewarnaan Status
+  if (status.includes('3')) { 
+    style.fillColor = '#ef4444'; 
     style.fillOpacity = 0.75; 
   } 
-  else if (status.includes('2') ) { 
-    style.fillColor = '#f97316'; // Oranye
+  else if (status.includes('2')) { 
+    style.fillColor = '#f97316'; // Oranye (Waspada)
     style.fillOpacity = 0.75; 
   } 
   else if (status.includes('1') || ['aman', 'normal'].includes(status)) { 
-    style.fillColor = '#22c55e'; // Hijau
+    style.fillColor = '#22c55e'; // Hijau (Aman)
     style.fillOpacity = 0.75; 
   }
   
   return style
 }
 
-// 2. FUNGSI FETCH UTAMA (Dengan Filter Periode)
+// Fetch Data Status (GIS All Status)
 const fetchAllStatus = async () => {
   isLoading.value = true
-
-
   try {
-    // Tambahkan query params bulan dan tahun
     const url = `https://api.palmwateros-tap.com/api/gis/all-status?month=${props.selectedMonth}&year=${props.selectedYear}`
-    
     const res = await fetch(url)
     const result = await res.json()
     
@@ -290,7 +296,6 @@ const fetchAllStatus = async () => {
       })
       apiData.value = mapped
     } else {
-       // Jika API mengembalikan status false / kosong
        apiData.value = {}
     }
   } catch (e) { 
@@ -301,6 +306,7 @@ const fetchAllStatus = async () => {
   }
 }
 
+// Fetch Detail Titik Pantau saat Marker diklik
 const handlePointClick = async (point, e) => {
   if (e) L.DomEvent.stopPropagation(e)
   
@@ -327,41 +333,48 @@ const handlePointClick = async (point, e) => {
   }
 }
 
-// 3. WATCHER PERUBAHAN PERIODE
+// --- WATCHERS & LIFECYCLE ---
+
+// Auto-fetch saat bulan/tahun berubah
 watch(() => [props.selectedMonth, props.selectedYear], () => {
     fetchAllStatus()
-}, { immediate: true }) // immediate true = jalankan juga saat mounted pertama kali
+}, { immediate: true })
 
 onMounted(async () => {
   try {
+    // Load GeoJSON Blok
     const res = await fetch('/Blok.json')
     const data = await res.json()
     const afdMap = {}
     
+    // Konversi Koordinat UTM ke LatLng & Hitung Afdeling
     data.features = data.features.map(f => {
       const name = f.properties.AFD_NAME
       afdMap[name] = (afdMap[name] || 0) + 1
+      
       const convert = (ring) => ring.map(c => {
+        // Konversi proj4
         const r = proj4('EPSG:32650', 'EPSG:4326', [parseFloat(c[0]), parseFloat(c[1])])
         return [r[1], r[0]] 
       })
+
       f.geometry.coordinates = f.geometry.type === 'Polygon' 
         ? f.geometry.coordinates.map(convert) 
         : f.geometry.coordinates.map(p => p.map(convert))
       return f
     })
 
+    // Emit data ke Parent Component
     emit('update-afdelings', Object.keys(afdMap).sort().map(n => ({ name: n, count: afdMap[n] })))
     geoJsonData.value = data
     emit('ready', data)
-    
-    // fetchAllStatus() // Tidak perlu dipanggil manual karena sudah ada di Watcher { immediate: true }
     
   } catch (e) { console.error("Map Init Error:", e) }
 })
 </script>
 
 <style>
+/* Style Khusus untuk Label di Peta */
 .label-blok-map {
   background: transparent !important;
   border: none !important;
