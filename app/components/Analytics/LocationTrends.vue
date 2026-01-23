@@ -3,8 +3,8 @@
     <div class="card">
       <div class="card-header">
         <div class="header-left">
-          <h3> Analisis Water Level</h3>
-          <span class="subtitle">Analisis tinggi level air</span>
+          <h3>Trend Kondisi Lahan</h3>
+          <span class="subtitle">Analisis skor rata-rata 7 hari terakhir</span>
         </div>
         <div class="header-right">
           <button class="filter-btn">7 Hari Terakhir</button>
@@ -28,6 +28,7 @@
 </template>
 
 <script setup>
+// ... (Bagian Script TIDAK ADA PERUBAHAN, biarkan sama seperti sebelumnya) ...
 import { ref, onMounted } from 'vue'
 import { Line } from 'vue-chartjs'
 import { 
@@ -50,7 +51,7 @@ const chartData = ref({ labels: [], datasets: [] })
 
 const chartOptions = ref({
   responsive: true,
-  maintainAspectRatio: false,
+  maintainAspectRatio: false, // Penting agar ikut tinggi container
   plugins: {
     legend: {
       display: true,
@@ -74,8 +75,7 @@ const chartOptions = ref({
       displayColors: false,
       callbacks: {
         label: function(context) {
-          let val = parseFloat(context.parsed.y).toFixed(2);
-          return `Level: ${val} cm`;
+          return `Skor: ${context.parsed.y}`;
         }
       }
     }
@@ -84,14 +84,14 @@ const chartOptions = ref({
     y: {
       beginAtZero: true,
       grid: { color: '#F3F4F6', borderDash: [4, 4] },
-      ticks: { color: '#9CA3AF', font: { size: 10 } }
+      ticks: { color: '#9CA3AF', font: { size: 10 } } // Font tick diperkecil sedikit
     },
     x: {
       grid: { display: false },
       ticks: { 
         color: '#9CA3AF', 
         font: { size: 10 },
-        maxRotation: 45,
+        maxRotation: 45, // Miringkan teks tanggal jika sempit
         minRotation: 0
       } 
     }
@@ -101,35 +101,40 @@ const chartOptions = ref({
 onMounted(async () => {
   try {
     isLoading.value = true
-    const response = await useApi('analytics/water-level-trend')
+    const response = await useApi('analytics/stats') 
+    const apiResult = response.data || {}
+    const chartApiData = apiResult.harian.chart
     
-    // API Anda mengembalikan object { labels: [], values: [] }
-    // Bukan array [ {tanggal: ...}, {avg_level: ...} ]
-    
-    if (response && response.labels && response.labels.length > 0) {
+    if (chartApiData && chartApiData.labels) {
       chartData.value = {
-        labels: response.labels, // Langsung ambil array labels
+        labels: chartApiData.labels, 
         datasets: [
           {
-            label: 'Rata-rata Tinggi Air',
-            data: response.values, // Langsung ambil array values
+            label: 'Skor Parit/Genangan Rata-Rata',
+            data: chartApiData.values,
             borderColor: '#3B82F6',
-            backgroundColor: 'rgba(59, 130, 246, 0.2)', 
+            backgroundColor: (context) => {
+              const ctx = context.chart.ctx;
+              const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+              gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+              gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+              return gradient;
+            },
             borderWidth: 3,
+            pointBorderColor: '#3B82F6',
             pointBackgroundColor: 'white',
+            pointBorderWidth: 2,
+            pointRadius: 4, // Perkecil sedikit titiknya
+            pointHoverRadius: 6,
             tension: 0.4, 
             fill: true
           }
         ]
       }
       loaded.value = true
-    } else {
-      console.warn('Data kosong dari API')
-      loaded.value = false
     }
   } catch (error) {
     console.error('Error loading analytics:', error)
-    loaded.value = false
   } finally {
     isLoading.value = false
   }

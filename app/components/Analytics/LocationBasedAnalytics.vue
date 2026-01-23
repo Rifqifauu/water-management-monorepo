@@ -1,177 +1,192 @@
 <template>
   <div class="dashboard-container">
-    <div class="card">
+    <div class="card card-modern">
       <div class="card-header">
-        <div>
-          <h3>Location-based Analysis</h3>
-          <p class="subtitle">Data distribution by afdeling</p>
+        <div class="title-section">
+          <h3>Lokasi Perlu Perhatian</h3>
+          <span class="subtitle">5 Blok dengan skor monitoring harian terendah</span>
+        </div>
+        <div class="badge-legend">
+          <span class="dot red"></span> &lt; 1.5 Buruk
         </div>
       </div>
       
       <div class="chart-container">
         <Bar
-          id="location-analysis-chart"
+          v-if="loaded"
+          id="worst-locations-chart"
           :options="chartOptions"
           :data="chartData"
         />
+        <div v-else class="status-display">
+           <div v-if="isLoading" class="loader"></div>
+           <span v-if="isLoading">Menganalisis data...</span>
+           <span v-else>Tidak ada data laporan bulan ini.</span>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Bar } from 'vue-chartjs'
 import { 
-  Chart as ChartJS, 
-  Title, 
-  Tooltip, 
-  Legend, 
-  BarElement, 
-  CategoryScale, 
-  LinearScale 
+  Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale    
 } from 'chart.js'
+import { useApi } from '@/composables/useApi'
 
-// Register komponen Chart.js
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
-// 1. DATA DUMMY
-// Merepresentasikan jumlah record per Afdeling
-const locationData = [
-  { name: 'Afdeling OA', infra: 15, water: 10 },
-  { name: 'Afdeling OB', infra: 8, water: 12 },
-  { name: 'Afdeling OC', infra: 20, water: 5 },
-  { name: 'Afdeling OD', infra: 12, water: 15 },
-  { name: 'Afdeling OE', infra: 5, water: 8 }
-]
+const loaded = ref(false)
+const isLoading = ref(false)
+const chartData = ref({ labels: [], datasets: [] })
 
-// 2. TRANSFORMASI DATA
-const chartData = computed(() => {
-  return {
-    // Ambil nama Afdeling sebagai label sumbu X
-    labels: locationData.map(d => d.name),
-    datasets: [
-      {
-        label: 'Infrastructure',
-        data: locationData.map(d => d.infra),
-        backgroundColor: '#3B82F6', // Blue-500
-        borderRadius: 4,
-        barPercentage: 0.6,
-        categoryPercentage: 0.7
-      },
-      {
-        label: 'Water Level',
-        data: locationData.map(d => d.water),
-        backgroundColor: '#10B981', // Green-500
-        borderRadius: 4,
-        barPercentage: 0.6,
-        categoryPercentage: 0.7
+const getWorstLocations = async () => {
+  try {
+    isLoading.value = true
+    const response = await useApi('analytics/stats')
+    const rawData = response.data?.harian?.top_locations || []
+
+    if (rawData.length > 0) {
+      chartData.value = {
+        labels: rawData.map(item => `Blok ${item.blok} (Afd ${item.afdeling})`),
+        datasets: [{
+          label: 'Skor Kondisi',
+          data: rawData.map(item => item.skor),
+          // DYNAMIC COLOR LOGIC
+          backgroundColor: (context) => {
+            const val = context.parsed.x;
+            if (val <= 1.5) return '#EF4444'; // Merah (Kritis)
+            if (val <= 2.2) return '#F59E0B'; // Oranye (Waspada)
+            return '#10B981'; // Hijau (Baik)
+          },
+          borderRadius: 20, // Membuat ujung bar membulat (pill style)
+          barThickness: 12, // Membuat bar lebih ramping & clean
+        }]
       }
-    ]
+      loaded.value = true
+    }
+  } catch (error) {
+    console.error("Error:", error)
+  } finally {
+    isLoading.value = false
   }
-})
+}
 
-// 3. KONFIGURASI OPTIONS
 const chartOptions = ref({
+  indexAxis: 'y', 
   responsive: true,
-  maintainAspectRatio: false,
+  maintainAspectRatio: false, 
   plugins: {
-    legend: {
-      position: 'bottom',
-      labels: {
-        usePointStyle: true, // Icon bulat
-        padding: 20,
-        font: {
-          family: 'Inter, sans-serif',
-          size: 12,
-          weight: '600'
-        },
-        color: '#4B5563'
-      }
-    },
+    legend: { display: false },
     tooltip: {
       backgroundColor: 'rgba(17, 24, 39, 0.9)',
-      padding: 12,
-      cornerRadius: 8,
-      titleFont: { size: 13 },
+      titleFont: { size: 13, weight: 'bold' },
       bodyFont: { size: 12 },
-      displayColors: true
+      padding: 12,
+      displayColors: false,
+      callbacks: {
+        label: (context) => {
+          const val = context.parsed.x;
+          let status = val <= 1.5 ? 'Buruk' : (val <= 2.2 ? 'Sedang' : 'Baik');
+          return ` Skor: ${val} / 3.0 (${status})`;
+        }
+      }
     }
   },
   scales: {
-    y: {
-      beginAtZero: true,
-      grid: {
-        color: '#F3F4F6', // Garis grid halus
-        drawBorder: false
-      },
-      ticks: {
-        font: { size: 11 },
-        color: '#6B7280'
-      }
-    },
     x: {
-      grid: {
-        display: false // Hilangkan grid vertikal agar lebih bersih
-      },
-      ticks: {
-        font: { size: 11, weight: '500' },
+      beginAtZero: true,
+      min: 0,
+      max: 3,
+      grid: { color: '#F3F4F6', borderDash: [4, 4], drawBorder: false },
+      ticks: { 
+        stepSize: 1,
+        color: '#9CA3AF',
+        font: { size: 11 }
+      } 
+    },
+    y: {
+      grid: { display: false },
+      ticks: { 
+        font: { family: "'Inter', sans-serif", weight: '500', size: 12 },
         color: '#374151'
       }
     }
-  },
-  // Interaction mode 'index' penting agar saat hover di satu afdeling,
-  // muncul tooltip untuk Infra DAN Water sekaligus
-  interaction: {
-    mode: 'index',
-    intersect: false,
   }
 })
+
+onMounted(getWorstLocations)
 </script>
 
 <style scoped>
-.dashboard-container {
-  padding: 20px;
-  background-color: #f4f6f8;
-  display: flex;
-  justify-content: center;
-}
+@import '~/assets/css/main.css';
 
-.card {
+.dashboard-container { padding: 20px; width: 100%; }
+
+.card-modern {
   background: white;
-  border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-  width: 100%;
-  max-width: 800px; /* Lebar max agak dibesarkan karena kolomnya banyak */
-  transition: all 0.3s ease;
-}
-
-.card:hover {
-  box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+  border-radius: 16px;
+  border: 1px solid #F1F5F9;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
 }
 
 .card-header {
-  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
 }
 
-h3 {
-  margin: 0;
-  font-size: 20px;
+h3 { 
+  margin: 0; 
+  font-size: 15px; 
+  color: #1E293B;
+  letter-spacing: -0.01em;
   font-weight: 700;
-  color: #111827;
 }
 
-.subtitle {
-  margin: 4px 0 0 0;
-  font-size: 12px;
-  color: #6B7280;
-  font-weight: 500;
+.subtitle { font-size: 12px; color: #64748B; margin-top: 4px; display: block; }
+
+.badge-legend {
+  font-size: 11px;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #F8FAFC;
+  padding: 4px 10px;
+  border-radius: 20px;
 }
 
-.chart-container {
-  position: relative;
-  height: 300px;
-  width: 100%;
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot.red { background: #EF4444; }
+
+.chart-container { position: relative; height: 280px; width: 100%; }
+
+.status-display {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #94A3B8;
+}
+
+.loader {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #F1F5F9;
+  border-top: 3px solid #3B82F6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>

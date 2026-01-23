@@ -5,7 +5,7 @@
       <div class="flex justify-between items-center mb-6">
         <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
           <div class="w-2.5 h-2.5 bg-blue-600 rounded-full animate-pulse"></div>
-          Monitoring Infrastruktur
+          Monitoring Water Level
         </h3>
         <button @click="resetFilters" class="text-[10px] font-black text-red-500 hover:bg-red-50 px-4 py-1.5 rounded-full transition uppercase tracking-widest border border-transparent hover:border-red-100">
           Reset Filter
@@ -71,31 +71,35 @@
                 <p class="text-[10px] font-bold text-blue-500 uppercase tracking-tighter">{{ item.karyawan?.nama }}</p>
                 <div class="mt-3 flex flex-wrap gap-1">
                     <span class="px-2.5 py-1 bg-slate-900 text-white text-[8px] font-black rounded-lg uppercase">{{ item.lokasi?.afdeling }} • {{ item.lokasi?.blok }}</span>
-                    <span class="px-2.5 py-1 bg-blue-50 text-blue-600 text-[8px] font-black rounded-lg uppercase border border-blue-100">{{ item.id_objek }}</span>
                 </div>
               </div>
             </div>
             <div class="text-right">
                 <span class="text-[8px] font-black text-slate-400 uppercase block mb-1">Avg Score</span>
-                <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl border-2" :class="item.rata_rata_skor > 0 ? getScoreBorder(item.rata_rata_skor) : 'border-slate-100 bg-slate-50'">
-                    <span v-if="item.rata_rata_skor > 0" class="text-xl font-black tracking-tighter" :class="getScoreColor(item.rata_rata_skor)">{{ item.rata_rata_skor }}</span>
-                    <span v-else class="text-[10px] font-black text-slate-300">N/A</span>
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl border-2" :class="getScoreBorder(item.rata_rata_skor)">
+                    <span class="text-xl font-black tracking-tighter" :class="getScoreColor(item.rata_rata_skor)">{{ item.rata_rata_skor }}</span>
                 </div>
             </div>
           </div>
+
           <div class="grid grid-cols-2 gap-3 mb-6">
-            <div v-for="p in ['Aliran', 'Penyebab', 'Tindakan']" :key="p" class="bg-slate-50/80 p-3 rounded-2xl border border-slate-100">
-              <p class="text-[8px] font-black text-slate-400 uppercase mb-1.5">{{ p }}</p>
+            <div class="bg-slate-50/80 p-3 rounded-2xl border border-slate-100">
+              <p class="text-[8px] font-black text-slate-400 uppercase mb-1.5 tracking-tighter">Tinggi Air</p>
               <div class="flex justify-between items-center">
-                <span class="text-[10px] font-bold text-slate-700 truncate pr-1">{{ getRawValue(item, p) }}</span>
-                <ScoreBadge :skor="getSkorValue(item, p)" />
+                <span class="text-[11px] font-black text-slate-700">{{ item.tinggi_level_air }} cm</span>
+                <ScoreBadge :skor="item.skor_ketinggian" />
+              </div>
+            </div>
+            <div class="bg-slate-50/80 p-3 rounded-2xl border border-slate-100">
+              <p class="text-[8px] font-black text-slate-400 uppercase mb-1.5 tracking-tighter">Jarak Bibir</p>
+              <div class="flex justify-between items-center">
+                <span class="text-[11px] font-black text-slate-700">{{ item.jarak_ke_bibir }} cm</span>
+                <ScoreBadge :skor="item.skor_jarak" />
               </div>
             </div>
           </div>
-          <div class="flex gap-2">
-            <a v-if="item.foto_path" :href="storageUrl + item.foto_path" target="_blank" class="flex-1 py-3.5 text-center bg-slate-50 text-slate-600 text-[9px] font-black rounded-2xl border border-slate-100 uppercase tracking-widest transition">Foto Before</a>
-            <a v-if="item.foto_after" :href="storageUrl + item.foto_after" target="_blank" class="flex-1 py-3.5 text-center bg-slate-50 text-slate-600 text-[9px] font-black rounded-2xl border border-slate-100 uppercase tracking-widest transition">Foto After</a>
-          </div>
+
+          <a v-if="item.foto_path" :href="storageUrl + item.foto_path" target="_blank" class="w-full py-3.5 text-center bg-blue-600 text-white text-[9px] font-black rounded-2xl shadow-lg shadow-blue-100 uppercase tracking-widest block transition">Lihat Foto</a>
         </div>
       </div>
 
@@ -106,11 +110,11 @@
               <th class="pl-10 py-7 text-left w-10">
                 <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" class="rounded-lg border-slate-300 text-blue-600 h-5 w-5 cursor-pointer" />
               </th>
-              <th class="px-4 py-7 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Detail Observasi</th>
-              <th class="px-4 py-7 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Area / Objek</th>
-              <th class="px-4 py-7 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Parameter & Skor Snapshot</th>
+              <th class="px-4 py-7 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Observasi</th>
+              <th class="px-4 py-7 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Area Kerja</th>
+              <th class="px-4 py-7 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Kondisi & Parameter</th>
               <th class="px-4 py-7 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Score</th>
-              <th class="px-4 py-7 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Dokumen</th>
+              <th class="px-4 py-7 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Media</th>
               <th class="px-6 py-7 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Notes</th>
             </tr>
           </thead>
@@ -119,51 +123,69 @@
             <tr v-if="isLoading">
               <td colspan="7" class="py-24 text-center font-black text-blue-500 animate-pulse text-xs uppercase tracking-[0.3em]">Connecting to API...</td>
             </tr>
-            <tr v-for="item in responseData.data" :key="item.id" class="hover:bg-blue-50/20 transition-all duration-200 group ">
+            <tr v-for="item in responseData.data" :key="item.id" class="hover:bg-blue-50/20 transition-all duration-200 group">
               <td class="pl-10 py-6">
                 <input type="checkbox" v-model="selectedIds" :value="item.id" class="rounded-lg border-slate-300 text-blue-600 h-5 w-5 cursor-pointer" />
               </td>
               <td class="px-4 py-6 whitespace-nowrap">
                 <div class="text-sm font-black text-slate-800 mb-1">{{ formatDate(item.tanggal) }}</div>
                 <div class="text-[10px] font-bold text-blue-500 uppercase tracking-tight">{{ item.karyawan?.nama }}</div>
-                <div class="mt-2 px-2.5 py-1 bg-slate-100 rounded-lg text-[9px] font-black text-slate-500 uppercase w-fit tracking-tighter border border-slate-200">{{ item.jenis_infrastruktur || 'Weekly' }}</div>
+                <div class="mt-2 text-[9px] font-black text-slate-400 uppercase tracking-tighter">No. WL: {{ item.no_water_level }}</div>
               </td>
               <td class="px-4 py-6 whitespace-nowrap">
                 <div class="text-sm font-black text-slate-800 tracking-tight leading-tight mb-1">{{ item.lokasi?.afdeling }}</div>
                 <div class="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">Blok: {{ item.lokasi?.blok }}</div>
-                <div class="text-[9px] font-black text-blue-400 mt-2 uppercase">ID: {{ item.id_objek || '-' }}</div>
               </td>
               
               <td class="px-4 py-6">
                 <div class="grid grid-cols-2 gap-2.5 w-[380px]">
-                  <div v-for="p in ['Aliran', 'Penyebab', 'Tindakan']" :key="p" class="bg-white border border-slate-100 rounded-2xl p-3 shadow-sm flex items-center justify-between group-hover:border-blue-100 transition-colors">
-                    <div class="max-w-[100px]">
-                        <p class="text-[8px] font-black text-slate-400 uppercase leading-none mb-1.5 tracking-tighter">{{ p }}</p>
-                        <p class="text-[10px] font-bold text-slate-700 truncate">{{ getRawValue(item, p) }}</p>
+                  <div class="bg-white border border-slate-100 rounded-2xl p-3 shadow-sm flex items-center justify-between group-hover:border-blue-100 transition-colors">
+                    <div>
+                        <p class="text-[8px] font-black text-slate-400 uppercase leading-none mb-1.5 tracking-tighter">Tinggi Air</p>
+                        <p class="text-[11px] font-black text-slate-700">{{ item.tinggi_level_air }} cm</p>
                     </div>
-                    <ScoreBadge :skor="getSkorValue(item, p)" />
+                    <ScoreBadge :skor="item.skor_ketinggian" />
+                  </div>
+                  <div class="bg-white border border-slate-100 rounded-2xl p-3 shadow-sm flex items-center justify-between group-hover:border-blue-100 transition-colors">
+                    <div>
+                        <p class="text-[8px] font-black text-slate-400 uppercase leading-none mb-1.5 tracking-tighter">Jarak Bibir</p>
+                        <p class="text-[11px] font-black text-slate-700">{{ item.jarak_ke_bibir }} cm</p>
+                    </div>
+                    <ScoreBadge :skor="item.skor_jarak" />
+                  </div>
+                  <div class="bg-white border border-slate-100 rounded-2xl p-3 shadow-sm flex items-center justify-between group-hover:border-blue-100 transition-colors">
+                    <div class="max-w-[100px]">
+                        <p class="text-[8px] font-black text-slate-400 uppercase leading-none mb-1.5 tracking-tighter">Aliran</p>
+                        <p class="text-[10px] font-bold text-slate-700 truncate">{{ item.kondisi_aliran }}</p>
+                    </div>
+                    <ScoreBadge :skor="item.skor_aliran" />
+                  </div>
+                   <div class="bg-white border border-slate-100 rounded-2xl p-3 shadow-sm flex items-center justify-between group-hover:border-blue-100 transition-colors">
+                    <div class="max-w-[100px]">
+                        <p class="text-[8px] font-black text-slate-400 uppercase leading-none mb-1.5 tracking-tighter">Risiko</p>
+                        <p class="text-[10px] font-bold text-slate-700 truncate">{{ item.risiko }}</p>
+                    </div>
+                    <ScoreBadge :skor="item.skor_risiko" />
                   </div>
                 </div>
               </td>
 
               <td class="px-4 py-6 text-center">
                 <div class="inline-flex flex-col items-center justify-center w-16 h-16 rounded-[1.5rem] border-2 transition-all group-hover:scale-110 shadow-sm" 
-                     :class="item.rata_rata_skor > 0 ? getScoreBorder(item.rata_rata_skor) : 'border-slate-100 bg-slate-50'">
-                  <span v-if="item.rata_rata_skor > 0" class="text-xl font-black tracking-tighter" :class="getScoreColor(item.rata_rata_skor)">{{ item.rata_rata_skor }}</span>
-                  <span v-else class="text-[10px] font-black text-slate-300">N/A</span>
+                     :class="getScoreBorder(item.rata_rata_skor)">
+                  <span class="text-xl font-black tracking-tighter" :class="getScoreColor(item.rata_rata_skor)">{{ item.rata_rata_skor }}</span>
                 </div>
               </td>
 
               <td class="px-4 py-6 text-center">
-                <div class="flex flex-col gap-1.5 items-center">
-                  <a v-if="item.foto_path" :href="storageUrl+ item.foto_path" target="_blank" class="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 hover:bg-blue-100 transition w-full block tracking-widest">Before</a>
-                  <a v-if="item.foto_after" :href="storageUrl+ item.foto_after" target="_blank" class="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 hover:bg-blue-100 transition w-full block tracking-widest">After</a>
-                  <span v-if="!item.foto_path && !item.foto_after" class="text-[9px] text-slate-300 font-bold uppercase tracking-widest">Empty</span>
-                </div>
+                <a v-if="item.foto_path" :href="storageUrl+ item.foto_path" target="_blank" class="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 hover:bg-blue-100 transition w-full block tracking-widest">Lihat Foto</a>
+                <span v-else class="text-[9px] text-slate-300 font-black uppercase tracking-widest italic">Empty</span>
               </td>
               
-              <td class="px-6 py-6 text-xs text-slate-400 italic">
-                <p class="line-clamp-2" :title="item.keterangan">{{ item.keterangan || '-' }}</p>
+              <td class="px-6 py-6">
+                <p class="text-[11px] text-slate-400 font-medium italic leading-relaxed max-w-[160px] line-clamp-2" :title="item.keterangan">
+                  {{ item.keterangan || '-' }}
+                </p>
               </td>
             </tr>
           </tbody>
@@ -174,6 +196,7 @@
         <div class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
           Record <span class="text-slate-900">{{ responseData.from }}</span> to <span class="text-slate-900">{{ responseData.to }}</span> of <span class="text-slate-900">{{ responseData.total }}</span>
         </div>
+
         <div class="flex gap-3">
           <button @click="changePage(responseData.current_page - 1)" :disabled="responseData.current_page === 1" class="px-6 py-3 bg-white border border-slate-200 rounded-2xl text-[10px] font-black text-slate-600 hover:bg-slate-100 disabled:opacity-30 transition uppercase tracking-widest">Prev</button>
           <div class="flex items-center px-6 text-xs font-black text-blue-600 bg-blue-100/50 rounded-2xl border border-blue-200 shadow-inner">{{ responseData.current_page }}</div>
@@ -216,25 +239,11 @@ const getScoreBorder = (skor) => {
   return 'border-red-100 bg-red-50'
 }
 
-const getRawValue = (item, param) => {
-    if (param === 'Aliran') return item.kondisi_aliran || '-'
-    if (param === 'Penyebab') return item.penyebab || '-'
-    if (param === 'Tindakan') return item.tindakan || '-'
-    return '-'
-}
-
-const getSkorValue = (item, param) => {
-    if (param === 'Aliran') return item.skor_aliran
-    if (param === 'Penyebab') return item.skor_penyebab
-    if (param === 'Tindakan') return item.skor_tindakan
-    return 0
-}
-
 const fetchData = async (page = 1) => {
     isLoading.value = true
     try {
         const params = new URLSearchParams({ page, ...filters.value })
-        const res = await useApi(`monitoring-mingguan?${params.toString()}`)
+        const res = await useApi(`water-level?${params.toString()}`)
         responseData.value = res
     } catch (e) { console.error(e) } 
     finally { isLoading.value = false }
@@ -264,7 +273,7 @@ const bulkDelete = async () => {
     })
     if (res.isConfirmed) {
         try {
-            await Promise.all(selectedIds.value.map(id => useApi(`monitoring-mingguan/${id}`, { method: 'DELETE' })))
+            await Promise.all(selectedIds.value.map(id => useApi(`water-level/${id}`, { method: 'DELETE' })))
             selectedIds.value = []; fetchData()
         } catch (e) { console.error(e) }
     }
@@ -276,3 +285,12 @@ onMounted(async () => {
     fetchData(1)
 })
 </script>
+
+<style scoped>
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}
+</style>

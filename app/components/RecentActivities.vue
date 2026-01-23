@@ -1,176 +1,96 @@
 <template>
-  <div class="card">
-    <div class="card-header">
-      <h3>Recent Activities</h3>
-      <span class="meta-text">Last 5 entries</span>
+  <div class="bg-white rounded-xl md:rounded-[1rem] shadow-sm border border-slate-200 overflow-hidden w-full">
+    <div class="px-4 md:px-8 py-4 md:py-6 border-b border-slate-100 flex justify-between items-center">
+      <div>
+        <h3 class="font-black text-slate-800 uppercase tracking-wider text-xs md:text-sm text-left">Recent Activities</h3>
+        <p class="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest text-left">Live Monitoring Logs</p>
+      </div>
     </div>
 
-    <div class="activity-list">
-      <div 
-        v-for="(item, index) in activities" 
-        :key="index" 
-        class="activity-item"
-      >
-        <div class="icon-box">
-          </div>
-
-        <div class="content">
-          <div class="item-title">{{ item.value }}</div>
-          <div class="item-subtitle">
-            {{ item.label }} &bull; {{ item.date }}
-          </div>
+    <div class="w-full">
+      <div v-if="isLoading" class="px-4 py-12 text-center">
+        <div class="flex flex-col items-center justify-center">
+          <div class="w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+          <span class="text-[9px] text-slate-400 font-black uppercase tracking-widest">Loading...</span>
         </div>
+      </div>
 
-        <div class="status-badge" :class="getStatusClass(item.status)">
-          {{ item.status }}
+      <div v-else-if="activities.length === 0" class="px-4 py-12 text-center text-slate-400 text-xs font-bold uppercase tracking-wider">
+        No activities found
+      </div>
+
+      <div class="hidden md:block overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+              <th class="px-8 py-4 border-b border-slate-100">Waktu</th>
+              <th class="px-8 py-4 border-b border-slate-100">Kategori</th>
+              <th class="px-8 py-4 border-b border-slate-100">Lokasi</th>
+              <th class="px-8 py-4 border-b border-slate-100 text-center">Skor</th>
+            </tr>
+          </thead>
+          <tbody class="text-sm divide-y divide-slate-50">
+            <tr v-for="item in activities" :key="item.type + item.id" class="group hover:bg-slate-50 transition-colors">
+              <td class="px-8 py-5 text-[11px] font-bold text-slate-400 uppercase italic whitespace-nowrap">{{ item.tanggal }}</td>
+              <td class="px-8 py-5">
+                <span class="text-[9px] font-black uppercase bg-slate-100 px-2 py-1 rounded text-slate-500 tracking-tighter">{{ item.type }}</span>
+              </td>
+              <td class="px-8 py-5 font-black text-slate-800 uppercase text-xs tracking-tight">{{ item.lokasi }}</td>
+              <td class="px-8 py-5 text-center">
+                <span class="px-3 py-1 rounded-lg text-xs font-black border inline-block" :class="getScoreColor(item.skor)">{{ item.skor }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="md:hidden divide-y divide-slate-100">
+        <div v-for="item in activities" :key="'mob-' + item.type + item.id" class="p-4 active:bg-slate-50">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <span class="text-[8px] font-black uppercase bg-slate-100 px-2 py-0.5 rounded text-slate-500 tracking-wider">
+                {{ item.type }}
+              </span>
+              <h4 class="font-black text-slate-800 uppercase text-xs mt-1">{{ item.lokasi }}</h4>
+            </div>
+            <div :class="getScoreColor(item.skor)" class="px-2 py-1 rounded-lg text-[10px] font-black border">
+              {{ item.skor }}
+            </div>
+          </div>
+          <div class="text-[9px] font-bold text-slate-400 uppercase italic">
+            {{ item.tanggal }}
+          </div>
         </div>
       </div>
     </div>
   </div>
 </template>
-
 <script setup>
-import { ref } from 'vue'
 
-// Data Dummy (Bisa diganti dengan props atau fetch API)
-const activities = ref([
-  {
-    value: '12 - 12',
-    label: 'Tes',
-    date: '5 Des 2025',
-    status: 'Baik'
-  },
-  // Contoh data lain untuk melihat list (opsional)
-  // {
-  //   value: '10 - 15',
-  //   label: 'Cek Rutin',
-  //   date: '4 Des 2025',
-  //   status: 'Perlu Perbaikan'
-  // }
-])
+const activities = ref([])
+const isLoading = ref(true)
 
-// Helper untuk warna badge status dinamis
-const getStatusClass = (status) => {
-  switch (status) {
-    case 'Baik':
-      return 'badge-success'
-    case 'Rusak':
-      return 'badge-danger'
-    case 'Perlu Perbaikan':
-      return 'badge-warning'
-    default:
-      return 'badge-default'
+const getScoreColor = (s) => {
+  const score = parseFloat(s)
+  if (score >= 2.5) return 'bg-emerald-50 text-emerald-600 border-emerald-100'
+  if (score >= 1.5) return 'bg-amber-50 text-amber-600 border-amber-100'
+  return 'bg-rose-50 text-rose-600 border-rose-100'
+}
+
+const fetchData = async () => {
+  isLoading.value = true
+  try {
+    const response = await useApi('recent-activities')
+    
+    activities.value = response.data || response
+  } catch (error) {
+    console.error("Gagal mengambil aktivitas terbaru:", error)
+  } finally {
+    isLoading.value = false
   }
 }
+
+onMounted(() => {
+  fetchData()
+})
 </script>
-
-<style scoped>
-/* Container Utama (Card Putih Besar) */
-.card {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); /* Shadow halus */
-  width: 100%;
-  font-family: 'Inter', sans-serif; /* Pastikan font sesuai project */
-}
-
-/* Header Styles */
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-h3 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: #111827; /* Dark Gray */
-}
-
-.meta-text {
-  font-size: 13px;
-  color: #6B7280; /* Gray 500 */
-  font-weight: 500;
-}
-
-/* List Item Styles */
-.activity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.activity-item {
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  border: 1px solid #F3F4F6; /* Border abu-abu sangat muda */
-  border-radius: 12px;
-  transition: background-color 0.2s;
-}
-
-.activity-item:hover {
-  background-color: #F9FAFB;
-}
-
-/* Icon Box (Kotak Hijau Kiri) */
-.icon-box {
-  width: 48px;
-  height: 48px;
-  background-color: #DCFCE7; /* Hijau muda pudar (Tailwind green-100) */
-  border-radius: 10px;
-  margin-right: 16px;
-  flex-shrink: 0;
-}
-
-/* Content Text */
-.content {
-  flex-grow: 1; /* Mengisi ruang tengah */
-}
-
-.item-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #111827;
-  margin-bottom: 4px;
-}
-
-.item-subtitle {
-  font-size: 14px;
-  color: #6B7280;
-  font-weight: 400;
-}
-
-/* Status Badge (Pill Kanan) */
-.status-badge {
-  padding: 6px 16px;
-  border-radius: 9999px; /* Pill shape */
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-/* Warna-warna Badge */
-.badge-success {
-  background-color: #DCFCE7; /* Hijau muda background */
-  color: #166534;            /* Hijau tua text */
-}
-
-.badge-warning {
-  background-color: #FEF3C7;
-  color: #92400E;
-}
-
-.badge-danger {
-  background-color: #FEE2E2;
-  color: #991B1B;
-}
-
-.badge-default {
-  background-color: #F3F4F6;
-  color: #374151;
-}
-</style>

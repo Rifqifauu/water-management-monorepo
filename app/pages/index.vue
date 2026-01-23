@@ -1,15 +1,23 @@
 <template>
-  <div class="min-h-screen font-sans selection:bg-green-100 selection:text-green-800 relative w-full h-full">
-    
+<div v-if="isMounted" class="min-h-screen font-sans selection:bg-green-100 selection:text-green-800 relative w-full h-full">    
     <div class="fixed inset-0 z-0">
         <img 
-        src="/bg.webp"
+          src="/bg.webp"
           alt="Background" 
           class="w-full h-full object-cover"
         />
         <div class="absolute inset-0 bg-white/10 backdrop-blur-xs"></div>
     </div>
 
+    <div class="absolute top-6 right-6 z-50">
+      <button 
+        @click="handleLogout"
+        class="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-red-100 text-red-600 rounded-xl hover:bg-red-50 hover:border-red-200 transition-all duration-300 shadow-sm group cursor-pointer"
+      >
+        <UIcon name="i-heroicons-arrow-right-on-rectangle" class="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+        <span class="text-sm font-semibold">Keluar</span>
+      </button>
+    </div>
 
     <div class="relative z-10 max-w-7xl mx-auto px-6 py-12 flex flex-col min-h-screen">
       
@@ -105,27 +113,43 @@
         </div>
       </main>
 
-      <footer class="mt-16 text-center border-t border-gray-300/50 pt-8">
-        <p class="text-sm text-gray-500 font-medium">
-          &copy; {{ new Date().getFullYear() }} GIS & Survey Division • Triputra Agro Persada
-        </p>
-        <p class="text-xs text-gray-400 mt-1">PT. Etam Bersama Lestari</p>
-      </footer>
+<footer class="mt-16 text-center border-t border-gray-300/50 pt-8">
+  <p class="text-sm text-gray-500 font-medium">
+    &copy; 
+    <ClientOnly>
+      {{ new Date().getFullYear() }}
+    </ClientOnly> 
+    GIS & Survey Division • Triputra Agro Persada
+  </p>
+</footer>
 
     </div>
   </div>
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router';
-
 const router = useRouter();
+const isMounted = ref(false);
+onMounted(() => {
+  // Cek login segera setelah masuk ke client
+  if (localStorage.getItem('status_login') !== 'true') {
+    return navigateTo('/login', { replace: true });
+  }
+    isMounted.value = true;
+});
 definePageMeta({
   layout: 'guest'
 });
 
 const goTo = (path) => {
     router.push(path);
+}
+
+// --- LOGIKA LOGOUT ---
+const handleLogout = () => {
+  localStorage.removeItem('status_login')
+  localStorage.removeItem('user_info')
+  navigateTo('/login')
 }
 </script>
 

@@ -7,10 +7,11 @@
       </button>
     </div>
    
-    <SkoringTable 
-      ref="tableRef" 
-      @edit="openEditModal" 
-    />
+ <SkoringTable 
+  ref="tableRef" 
+  @edit="openEditModal" 
+  @delete="handleDelete" 
+/>
 
     <BaseModal 
       :show="showModal" 
@@ -60,4 +61,16 @@ const handleSuccess = () => {
 
   closeModal() 
 }
+const handleDelete = async (id) => {
+  try {
+    await useApi(`skoring/${id}`, {
+      method: 'DELETE'
+    }) 
+    tableRef.value?.fetchData()
+    alert('Data berhasil dihapus!')
+  } catch (error) {
+
+  }
+}
+
 </script>
