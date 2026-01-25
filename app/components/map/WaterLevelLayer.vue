@@ -1,10 +1,10 @@
 <template>
-  <LLayerGroup :key="`layer-group-wl-${finalFeatures.length}-${props.selectedMonth}`">
+  <LLayerGroup :key="`layer-group-wl-${filterKey}`">
     <LMarker
       v-for="(item, index) in finalFeatures"
       :key="getMarkerKey(item, index)"
       :lat-lng="item.latLng"
-      :icon="createIcon()"
+      :icon="createIcon(item.status)"
     >
       <LTooltip :options="{ permanent: false, direction: 'top', offset: [0, -6], className: 'label-water-tooltip' }">
         <div class="text-xs font-bold uppercase">{{ item.nomor }}</div>
@@ -13,25 +13,25 @@
       <LPopup :options="{ offset: [0, -6], maxWidth: 300, minWidth: 220 }">
         <div class="font-sans text-slate-900">
           
-          <div class="flex justify-between items-start border-b border-slate-100 pb-2 mb-2">
+          <div class="flex justify-between items-start border-b border-slate-100 pb-2 mb-2 mt-6">
             <div>
               <h3 class="font-black text-sm uppercase leading-tight text-slate-700">
                 {{ item.nomor }}
               </h3>
-              <span class="text-[10px] text-slate-400 font-bold uppercase">
+              <span class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
                 {{ item.groupDas }} | Blok {{ item.blok }}
               </span>
             </div>
             
             <div 
-              class="px-2 py-0.5 rounded text-[9px] font-black uppercase text-white shadow-sm"
-              :style="{ backgroundColor: getStatusColor(item.status) }"
+              class="px-2 py-0.5 rounded text-[9px] font-black uppercase text-white shadow-sm whitespace-nowrap"
+              style="background-color: #1e40af;"
             >
-              {{ item.status || 'Unknown' }}
+              {{ item.status }}
             </div>
           </div>
           
-          <div v-if="isLoading && !item.tanggal" class="py-4 text-center">
+          <div v-if="isLoading && !item.tanggal_raw" class="py-4 text-center">
              <div class="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
 
@@ -41,15 +41,20 @@
                  :src="`https://api.palmwateros-tap.com/storage/${item.foto_path}`" 
                  alt="Kondisi Air" 
                  class="w-full h-36 object-cover"
-                 @error="$event.target.style.display='none'"
+                 @error="item.foto_path = null"
                />
             </div>
 
-            <div class="bg-cyan-50 border border-cyan-100 p-2 rounded-lg mb-2 shadow-sm">
+            <div 
+              class="p-2 rounded-lg mb-2 shadow-sm border"
+              :class="item.tanggal_raw ? 'bg-cyan-50 border-cyan-100' : 'bg-slate-50 border-slate-100'"
+            >
                <div class="flex justify-between items-center">
-                  <span class="text-[10px] font-bold text-cyan-600 uppercase">Laporan Terakhir:</span>
+                  <span class="text-[10px] font-bold uppercase" :class="item.tanggal_raw ? 'text-cyan-600' : 'text-slate-400'">
+                    Laporan Terakhir:
+                  </span>
                </div>
-               <p class="text-xs font-mono font-bold text-cyan-800 mt-0.5 ml-1">
+               <p class="text-xs font-mono font-bold mt-0.5 ml-1" :class="item.tanggal_raw ? 'text-cyan-800' : 'text-slate-500'">
                   {{ item.tanggal }}
                </p>
             </div>
@@ -57,12 +62,12 @@
 
           <div class="grid grid-cols-2 gap-2">
             <div class="bg-slate-50 p-1.5 rounded border border-slate-100">
-              <p class="text-[8px] text-slate-400 uppercase font-bold">Afdeling</p>
-              <p class="text-[11px] font-bold text-slate-700">{{ item.afdeling }}</p>
+              <p class="text-[8px] text-slate-400 uppercase font-bold tracking-tight">Afdeling</p>
+              <p class="text-[10px] font-bold text-slate-700 uppercase">{{ item.afdeling }}</p>
             </div>
             <div class="bg-slate-50 p-1.5 rounded border border-slate-100">
-              <p class="text-[8px] text-slate-400 uppercase font-bold">ID Objek</p>
-              <p class="text-[11px] font-bold text-slate-700">{{ item.id }}</p>
+              <p class="text-[8px] text-slate-400 uppercase font-bold tracking-tight">ID Objek</p>
+              <p class="text-[10px] font-bold text-slate-700 font-mono">{{ item.id }}</p>
             </div>
           </div>
 
@@ -83,23 +88,27 @@ proj4.defs('EPSG:32650', '+proj=utm +zone=50 +datum=WGS84 +units=m +no_defs')
 const props = defineProps({ 
   geoJson: { type: Object, default: () => ({ features: [] }) },
   filterAfd: { type: Array, default: () => ['All'] },
-  selectedMonth: { type: [Number, Object], default: null },
-  selectedYear: { type: [Number, Object], default: null }
+  selectedMonth: { type: [Number, Object, String], default: null },
+  selectedYear: { type: [Number, Object, String], default: null },
+  selectedBlock: { type: String, default: null } // Untuk isolasi blok
 })
 
 const waterStatusMap = ref({}) 
 const isLoading = ref(false)
 let pollingInterval = null
 
-// Key unik agar marker merender ulang data Popup saat periode berubah
+// Key re-render berdasarkan isolasi dan periode
+const filterKey = computed(() => {
+  return `${props.selectedMonth}-${props.selectedYear}-${props.selectedBlock || 'all'}`
+})
+
 const getMarkerKey = (item, index) => {
-  return `wl-${item.nomor}-${item.status}-${props.selectedMonth}-${props.selectedYear}-${index}`
+  return `wl-${item.nomor}-${item.status}-${props.selectedMonth}-${index}`
 }
 
 const fetchWaterStatus = async () => {
   try {
     isLoading.value = true
-    // Normalisasi parameter untuk API
     const m = props.selectedMonth || ''
     const y = props.selectedYear || ''
     
@@ -112,7 +121,6 @@ const fetchWaterStatus = async () => {
     if (Array.isArray(items)) {
         items.forEach(item => {
             if (item.no_water_level) {
-              // NORMALISASI: Trim agar matching ID di finalFeatures akurat
               const key = String(item.no_water_level).trim()
               mapping[key] = {
                   status: item.status, 
@@ -130,12 +138,10 @@ const fetchWaterStatus = async () => {
   }
 }
 
-// Watcher untuk update data otomatis saat periode diubah
 watch(() => [props.selectedMonth, props.selectedYear], () => {
     fetchWaterStatus()
 }, { immediate: true })
 
-// Polling update setiap 1 menit
 onMounted(() => {
     pollingInterval = setInterval(fetchWaterStatus, 60000)
 })
@@ -145,7 +151,7 @@ onUnmounted(() => {
 })
 
 const formatDateIndo = (dateStr) => {
-    if (!dateStr || dateStr === '-') return '-'
+    if (!dateStr || dateStr === '-') return 'Belum Dilaporkan'
     const date = new Date(dateStr)
     if (isNaN(date.getTime())) return dateStr
     return new Intl.DateTimeFormat('id-ID', {
@@ -153,26 +159,20 @@ const formatDateIndo = (dateStr) => {
     }).format(date)
 }
 
-const getStatusColor = (statusRaw) => {
-  const status = statusRaw?.toString().trim().toLowerCase() || 'unknown'
-  if (status.includes('good') || status === 'aman' || status === 'baik' || status === 'normal') return '#10b981' 
-  if (status.includes('maintenance') || status === 'sedang' || status === 'perawatan') return '#f59e0b' 
-  if (status.includes('urgent') || status === 'kritis' || status === 'rusak') return '#ef4444' 
-  return '#64748b' 
-}
 
-const createIcon = () => {
+const createIcon = (status) => {
   return L.divIcon({
     className: '', 
     html: `
-      <div 
-        class="w-3.5 h-3.5 rounded-full border-2 border-white shadow-md hover:scale-125 transition-transform" 
-        style="background-color: #1e40af;" 
-      ></div>
+      <div class="relative flex items-center justify-center">
+        <div class="absolute w-5 h-5 rounded-full animate-ping opacity-20" style="background-color: #1e40af;"></div>
+        <div 
+          class="w-3.5 h-3.5 rounded-full border-2 border-white shadow-lg transition-all duration-300 hover:scale-150" 
+          style="background-color:#1e40af;"
+        ></div>
+      </div>
     `,
-    iconSize: [14, 14],   
-    iconAnchor: [7, 7],   
-    popupAnchor: [0, -7]  
+    iconSize: [14, 14], iconAnchor: [7, 7], popupAnchor: [0, -7]  
   })
 }
 
@@ -181,30 +181,34 @@ const finalFeatures = computed(() => {
 
   const cleanFilterAfd = props.filterAfd.map(a => a.toString().trim().toUpperCase())
   const isAllAfd = cleanFilterAfd.includes('ALL')
+  const activeBlock = props.selectedBlock ? props.selectedBlock.toString().trim().toUpperCase() : null
 
-  // Filtering titik berdasarkan Afdeling dan Periode
+  // 1. FILTERING: Isolasi Blok atau Afdeling
   const filteredGeo = props.geoJson.features.filter(f => {
-    const dataAfd = (f.properties.Afdeling || '').toString().trim().toUpperCase()
-    const matchAfd = isAllAfd || cleanFilterAfd.includes(dataAfd)
-    
-    if (!matchAfd) return false
+    const featureBlock = (f.properties.Blok || '').toString().trim().toUpperCase()
+    const featureAfd = (f.properties.Afdeling || '').toString().trim().toUpperCase()
 
-    // Jika filter bulan dipilih, hanya tampilkan yang ada datanya di API bulan itu
-    if (props.selectedMonth && props.selectedYear) {
-      const nomorKey = String(f.properties.Nomor).trim()
-      return waterStatusMap.value.hasOwnProperty(nomorKey)
+    // Jika isolasi blok aktif
+    if (activeBlock) {
+      return featureBlock === activeBlock
     }
 
-    return true
+    // Default filter afdeling
+    return isAllAfd || cleanFilterAfd.includes(featureAfd)
   })
 
+  // 2. MAPPING: Gabungkan data GeoJSON dengan data API (Jika tidak ada API, tetap tampilkan)
   return filteredGeo.map(f => {
     const propsRaw = f.properties
     const rawCoords = f.geometry.coordinates
     const nomorKey = String(propsRaw.Nomor).trim() 
     
-    // Ambil data dari API Map hasil fetch
-    const apiData = waterStatusMap.value[nomorKey] || { status: 'Tidak Ada Laporan', tanggal: null, foto_path: null }
+    // Lookup ke hasil API
+    const apiData = waterStatusMap.value[nomorKey] || { 
+      status: 'Tidak Ada Laporan', 
+      tanggal: null, 
+      foto_path: null 
+    }
 
     let finalLatLng = [0, 0]
     if (rawCoords[0] > 180 || rawCoords[1] > 180) {
@@ -222,6 +226,7 @@ const finalFeatures = computed(() => {
       blok: propsRaw.Blok || '-',
       latLng: finalLatLng,
       status: apiData.status,
+      tanggal_raw: apiData.tanggal, // Simpan untuk pengecekan styling
       tanggal: formatDateIndo(apiData.tanggal),
       foto_path: apiData.foto_path
     }
@@ -231,12 +236,13 @@ const finalFeatures = computed(() => {
 
 <style>
 .label-water-tooltip {
-  background: rgba(15, 23, 42, 0.95) !important; 
-  border: 1px solid rgba(255,255,255,0.1) !important;
+  background: rgba(15, 23, 42, 0.9) !important; 
+  border: none !important;
   color: white !important;
   font-weight: 800;
-  font-size: 10px;
-  padding: 2px 8px;
+  font-size: 9px;
+  padding: 2px 6px;
   border-radius: 4px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
 </style>
