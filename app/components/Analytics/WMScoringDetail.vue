@@ -117,9 +117,57 @@
                       <span class="text-[8px] font-bold text-blue-400 uppercase">Kedalaman</span>
                       <span class="text-xs font-black text-blue-800">{{ item.kondisi_riil.kedalaman }}</span>
                     </div>
-                    <div class="flex flex-col px-3 py-1.5 bg-white border-2 border-blue-100 rounded-xl min-w-[80px]">
+                    <div v-if="item.kondisi_riil.aliran != null" class="flex flex-col px-3 py-1.5 bg-white border-2 border-blue-100 rounded-xl min-w-[80px]">
                       <span class="text-[8px] font-bold text-blue-400 uppercase">Aliran</span>
                       <span class="text-xs font-black text-blue-800">{{ item.kondisi_riil.aliran }}</span>
+                    </div>
+                    <div class="flex flex-col px-3 py-1.5 bg-white border-2 border-blue-100 rounded-xl min-w-[80px]">
+                      <span class="text-[8px] font-bold text-blue-400 uppercase">Durasi Genangan</span>
+                      <span class="text-xs font-black text-blue-800">{{ item.kondisi_riil.durasi_genangan }}</span>
+                    </div>
+                    <div class="flex flex-col px-3 py-1.5 bg-white border-2 border-blue-100 rounded-xl min-w-[80px]">
+                      <span class="text-[8px] font-bold text-blue-400 uppercase">Penyebab</span>
+                      <span class="text-xs font-black text-blue-800">{{ item.kondisi_riil.penyebab }}</span>
+                    </div>
+                    <div class="flex flex-col px-3 py-1.5 bg-white border-2 border-blue-100 rounded-xl min-w-[80px]">
+                      <span class="text-[8px] font-bold text-blue-400 uppercase">Jumlah Pokok</span>
+                      <span class="text-xs font-black text-blue-800">{{ item.kondisi_riil.jumlah_pokok }}</span>
+                    </div>
+                  </template>
+                  <template v-if="activeTab === 'mingguan'">
+                    <div class="flex flex-col px-3 py-1.5 bg-white border-2 border-blue-100 rounded-xl min-w-[80px]">
+                      <span class="text-[8px] font-bold text-blue-400 uppercase">ID Objek</span>
+                      <span class="text-xs font-black text-blue-800">{{ item.id_objek }}</span>
+                    </div>
+                    <div class="flex flex-col px-3 py-1.5 bg-white border-2 border-blue-100 rounded-xl min-w-[80px]">
+                      <span class="text-[8px] font-bold text-blue-400 uppercase">Aliran</span>
+                      <span class="text-xs font-black text-blue-800">{{ item.kondisi_riil.kondisi_aliran }}</span>
+                    </div>
+                    <div class="flex flex-col px-3 py-1.5 bg-white border-2 border-blue-100 rounded-xl min-w-[80px]">
+                      <span class="text-[8px] font-bold text-blue-400 uppercase">Penyebab</span>
+                      <span class="text-xs font-black text-blue-800">{{ item.kondisi_riil.penyebab }}</span>
+                    </div>
+                  </template>
+                  <template v-if="activeTab === 'water'">
+                    <div class="flex flex-col px-3 py-1.5 bg-white border-2 border-blue-100 rounded-xl min-w-[80px]">
+                      <span class="text-[8px] font-bold text-blue-400 uppercase">Nomor WL</span>
+                      <span class="text-xs font-black text-blue-800">{{ item.no_water_level }}</span>
+                    </div>
+                    <div class="flex flex-col px-3 py-1.5 bg-white border-2 border-blue-100 rounded-xl min-w-[80px]">
+                      <span class="text-[8px] font-bold text-blue-400 uppercase">Tinggi Level Air</span>
+                      <span class="text-xs font-black text-blue-800">{{ item.kondisi_riil.tinggi_level_air }}</span>
+                    </div>
+                    <div class="flex flex-col px-3 py-1.5 bg-white border-2 border-blue-100 rounded-xl min-w-[80px]">
+                      <span class="text-[8px] font-bold text-blue-400 uppercase">Aliran</span>
+                      <span class="text-xs font-black text-blue-800">{{ item.kondisi_riil.kondisi_aliran }}</span>
+                    </div>
+                    <div class="flex flex-col px-3 py-1.5 bg-white border-2 border-blue-100 rounded-xl min-w-[80px]">
+                      <span class="text-[8px] font-bold text-blue-400 uppercase">Risiko</span>
+                      <span class="text-xs font-black text-blue-800">{{ item.kondisi_riil.risiko }}</span>
+                    </div>
+                    <div class="flex flex-col px-3 py-1.5 bg-white border-2 border-blue-100 rounded-xl min-w-[80px]">
+                      <span class="text-[8px] font-bold text-blue-400 uppercase">Kapasitas Drainase</span>
+                      <span class="text-xs font-black text-blue-800">{{ item.kondisi_riil.kapasitas_drainase }}</span>
                     </div>
                   </template>
                 </div>
