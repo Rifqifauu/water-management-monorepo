@@ -160,7 +160,7 @@
                 </div>
               </div>
 
-              <div v-if="form.tindakan && form.tindakan !== 'Tidak Perlu'">
+              <div v-if="form.tindakan && form.tindakan == 'Eksekusi Rutin'">
                 <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
                   Foto Lapangan (After) <span class="text-red-500">*</span>
                 </label>
@@ -317,7 +317,7 @@ const saveData = async () => {
   if (!photoFile.value) return Swal.fire('Warning', 'Foto Before wajib diunggah', 'warning')
 
   // Validasi Foto After jika ada tindakan
-  const perluAfter = form.tindakan && form.tindakan !== 'Tidak Perlu'
+  const perluAfter = form.tindakan && form.tindakan == 'Eksekusi Rutin'
   if (perluAfter && !photoAfterFile.value) {
     return Swal.fire('Warning', 'Foto After wajib diunggah untuk tindakan yang dipilih', 'warning')
   }

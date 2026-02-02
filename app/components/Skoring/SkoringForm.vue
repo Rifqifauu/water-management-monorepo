@@ -254,8 +254,7 @@ const handleBatchSubmit = async () => {
     progressText.value = `Menyimpan ${index + 1} dari ${totalItems}...`
 
     try {
-      // Pastikan 'useApi' sudah terdefinisi/diimport
-      // Jika pakai axios biasa: await axios.post('/api/skoring', item)
+
       await useApi('skoring', { 
         method: 'POST',
         body: JSON.stringify(item)
