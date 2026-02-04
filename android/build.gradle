@@ -1,3 +1,17 @@
+// 1. Tambahkan blok buildscript ini di paling atas
+buildscript {
+    ext.kotlin_version = '1.9.0' // Sesuaikan dengan versi kotlin kamu
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // Gunakan versi 8.1.0 agar cocok dengan Java di Flutter 3.27
+        classpath 'com.android.tools.build:gradle:8.7.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
 allprojects {
     repositories {
         google()
