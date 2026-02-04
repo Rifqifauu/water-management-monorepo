@@ -2,11 +2,11 @@
 <div v-if="isMounted" class="min-h-screen font-sans selection:bg-green-100 selection:text-green-800 relative w-full h-full">    
     <div class="fixed inset-0 z-0">
         <img 
-          src="/bg.webp"
+          src="/login.jpg"
           alt="Background" 
           class="w-full h-full object-cover"
         />
-        <div class="absolute inset-0 bg-white/10 backdrop-blur-xs"></div>
+        <div class="absolute inset-0 bg-white/70 backdrop-blur-xs"></div>
     </div>
 
     <div class="absolute top-6 right-6 z-50">

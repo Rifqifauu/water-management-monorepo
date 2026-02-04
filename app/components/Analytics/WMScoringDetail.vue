@@ -35,6 +35,10 @@
               Afd {{ detailData.header.lokasi.afdeling }} <span class="text-blue-200">|</span> {{
               detailData.header.periode }}
             </p>
+                <p
+              class="text-sm sm:text-md font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
+               "{{ detailData.header.performance.analisa.tindakan }}"
+            </p>
 
             <div
               class="flex items-center mt-2 gap-3 bg-blue-50/50 border border-blue-100 rounded-lg p-1.5 pr-4 overflow-x-auto max-w-full">
