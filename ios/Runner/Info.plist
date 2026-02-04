@@ -4,6 +4,10 @@
 	<dict>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>Aplikasi memerlukan lokasi untuk verifikasi input data monitoring.</string>
+		<key>NSLocationAlwaysUsageDescription</key>
+		<string>Aplikasi memerlukan akses lokasi untuk fitur monitoring air.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>Aplikasi memerlukan akses lokasi untuk fitur monitoring air.</string>
 		<key>NSCameraUsageDescription</key>
 		<string>Aplikasi memerlukan akses kamera untuk mengambil foto bukti kondisi air.</string>
 		<key>NSPhotoLibraryUsageDescription</key>

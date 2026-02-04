@@ -36,7 +36,7 @@ dev_dependencies:
   
   # Generator Icons & Splash
   flutter_launcher_icons: ^0.13.1
-  flutter_native_splash: ^2.4.0
+  flutter_native_splash: null
 
 flutter:
   uses-material-design: true
@@ -46,15 +46,11 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/logo.png"
+  image_path: "assets/images/icon.png"
   min_sdk_android: 21 
   adaptive_icon_background: "#FFFFFF" # Warna background putih di belakang logo
-  adaptive_icon_foreground: "assets/images/logo.png"
+  adaptive_icon_foreground: "assets/images/icon.png"
   adaptive_icon_background_color: "#FFFFFF"
   image_path_android: "assets/images/icon.png"
   adaptive_icon_foreground_inset: 16
 
-flutter_native_splash:
-  color: "#FFFFFF"
-  android_12:
-    color: "#FFFFFF"
