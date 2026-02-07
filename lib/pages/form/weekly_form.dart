@@ -231,9 +231,9 @@ class _WeeklyFormState extends State<WeeklyForm> {
           !connectivityResult.contains(ConnectivityResult.none);
 
       if (isOnline) {
-        await _apiService.submitMingguan(
-            submissionData, photoBefore, photoAfter);
+        await _apiService.submitMingguan(submissionData, photoBefore, photoAfter);
         _showMessage("Data Berhasil Terkirim Online!", isError: false);
+        await _saveToHistory(submissionData, "Data disimpan di history.");
         _resetForm();
       } else {
         await _saveToOfflineQueue(submissionData, "Data disimpan Offline.");
@@ -253,6 +253,17 @@ class _WeeklyFormState extends State<WeeklyForm> {
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
+  }
+  Future<void> _saveToHistory(
+      Map<String, dynamic> dataPayload, String message) async {
+    await _queueService.addToHistory(
+      type: 'weekly_monitoring',
+      data: dataPayload,
+      photoBefore: photoBefore?.path,
+      photoAfter: photoAfter?.path,
+    );
+    _showMessage(message, isError: false, color: Colors.orange);
+    _resetForm();
   }
 
   Future<void> _saveToOfflineQueue(

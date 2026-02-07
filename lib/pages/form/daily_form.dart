@@ -247,6 +247,7 @@ void _showPickerOptions(bool isBefore) {
     if (isOnline) {
       await _apiService.submitHarian(submissionData, photoBefore, photoAfter);
       _showMessage("Data Berhasil Terkirim Online!", isError: false);
+      await _saveToHistory(submissionData, "Data disimpan di history.");
       _resetForm();
     } else {
       await _saveToOfflineQueue(submissionData, "Data disimpan Offline.");
@@ -272,6 +273,17 @@ void _showPickerOptions(bool isBefore) {
   Future<void> _saveToOfflineQueue(
       Map<String, dynamic> dataPayload, String message) async {
     await _queueService.addToQueue(
+      type: 'daily_monitoring',
+      data: dataPayload,
+      photoBefore: photoBefore?.path,
+      photoAfter: photoAfter?.path,
+    );
+    _showMessage(message, isError: false, color: Colors.orange);
+    _resetForm();
+  }
+  Future<void> _saveToHistory(
+      Map<String, dynamic> dataPayload, String message) async {
+    await _queueService.addToHistory(
       type: 'daily_monitoring',
       data: dataPayload,
       photoBefore: photoBefore?.path,

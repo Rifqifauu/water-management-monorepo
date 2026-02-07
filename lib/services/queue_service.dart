@@ -28,7 +28,6 @@ class QueueService {
       version: 2, // PENTING: Versi dinaikkan ke 2 untuk memicu onUpgrade
       onCreate: (db, version) async {
         print("✨ [QUEUE DB] Membuat Tabel 'queue' baru...");
-        // Kolom is_synced: 0 = Pending, 1 = Synced
         await db.execute('''
           CREATE TABLE queue (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,9 +51,6 @@ class QueueService {
     );
   }
 
-  // ------------------------------------------------------------------------
-  // CREATE
-  // ------------------------------------------------------------------------
   Future<int> addToQueue({
     required String type,
     required Map<String, dynamic> data,
@@ -63,7 +59,6 @@ class QueueService {
   }) async {
     try {
       final db = await database;
-      
       print("💾 [QUEUE] Mencoba menyimpan data...");
       String? savedBefore = await _saveToPermanentStorage(photoBefore);
       String? savedAfter = await _saveToPermanentStorage(photoAfter);
@@ -73,7 +68,35 @@ class QueueService {
         'payload': jsonEncode(data),
         'photo_before_path': savedBefore,
         'photo_after_path': savedAfter,
-        'is_synced': 0, // Default belum sync
+        'is_synced': 0, 
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      print("✅ [QUEUE] Berhasil disimpan! ID Antrean: $id");
+      return id;
+    } catch (e) {
+      print("❌ [QUEUE ERROR] Gagal menyimpan: $e");
+      rethrow;
+    }
+  }
+  Future<int> addToHistory({
+    required String type,
+    required Map<String, dynamic> data,
+    String? photoBefore,
+    String? photoAfter,
+  }) async {
+    try {
+      final db = await database;
+      print("💾 [QUEUE] Mencoba menyimpan data...");
+      String? savedBefore = await _saveToPermanentStorage(photoBefore);
+      String? savedAfter = await _saveToPermanentStorage(photoAfter);
+
+      int id = await db.insert('queue', {
+        'type': type,
+        'payload': jsonEncode(data),
+        'photo_before_path': savedBefore,
+        'photo_after_path': savedAfter,
+        'is_synced': 1, 
         'created_at': DateTime.now().toIso8601String(),
       });
 
@@ -162,11 +185,9 @@ class QueueService {
     try {
       final File tempFile = File(tempPath);
       if (!await tempFile.exists()) return null;
-
       final Directory appDocDir = await getApplicationDocumentsDirectory();
       final String fileName = "queue_${DateTime.now().millisecondsSinceEpoch}_${basename(tempPath)}";
       final String permanentPath = join(appDocDir.path, fileName);
-      
       await tempFile.copy(permanentPath);
       return permanentPath;
     } catch (e) {
@@ -174,4 +195,5 @@ class QueueService {
       return tempPath;
     }
   }
+
 }

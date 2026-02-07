@@ -241,6 +241,7 @@ Future<void> _submit() async {
     if (isOnline) {
       await _apiService.submitWL(submissionData, photoBefore, photoAfter);
       _showMessage("Data Berhasil Terkirim Online!", isError: false);
+      await _saveToHistory(submissionData, "Data disimpan di history.");
       _resetForm();
     } else {
       await _saveToOfflineQueue(submissionData, "Data disimpan Offline.");
@@ -262,6 +263,16 @@ Future<void> _submit() async {
     if (mounted) setState(() => isSubmitting = false);
   }
 }
+  Future<void> _saveToHistory(Map<String, dynamic> dataPayload, String message) async {
+    await _queueService.addToHistory(
+      type: 'wl_monitoring',
+      data: dataPayload, 
+      photoBefore: photoBefore?.path,
+      photoAfter: photoAfter?.path,
+    );
+    _showMessage(message, isError: false);
+    _resetForm();
+  }
   Future<void> _saveToOfflineQueue(Map<String, dynamic> dataPayload, String message) async {
     await _queueService.addToQueue(
       type: 'wl_monitoring',
