@@ -33,7 +33,6 @@ class PalmWaterApp extends StatelessWidget {
       builder: (context, child) {
         return ConnectionCheck(child: child!);
       },
-      // GANTI LoginPage MENJADI SplashScreen
       home: const SplashScreen(),
     );
   }
@@ -59,7 +58,6 @@ class _LoginPageState extends State<LoginPage> {
     // Simulasi loading
     await Future.delayed(const Duration(milliseconds: 800));
 
-    // Logika Login Sederhana
     if (_usernameController.text == 'admin' &&
         _passwordController.text == 'admin123') {
       if (mounted) {
@@ -85,7 +83,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           Positioned.fill(

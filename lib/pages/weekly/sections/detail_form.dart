@@ -9,6 +9,9 @@ class DetailForm extends StatelessWidget {
   final List<SkoringConfig> skoringData;
   final VoidCallback onUpdate;
   final Function(String?) onTindakanChanged;
+  final List<InfrastructureMaster> infrastructureMasterData;
+  final InfrastructureMaster? selectedInfrastructureMaster;
+  final Function(InfrastructureMaster?) onInfrastructureMasterChanged;
 
   const DetailForm({
     super.key,
@@ -17,6 +20,10 @@ class DetailForm extends StatelessWidget {
     required this.skoringData,
     required this.onUpdate,
     required this.onTindakanChanged,
+    required this.infrastructureMasterData,
+    this.selectedInfrastructureMaster,
+    required this.onInfrastructureMasterChanged,
+
   });
 
   // --- Helpers ---
@@ -39,8 +46,6 @@ class DetailForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final availableUnits = skoringData.map((e) => e.unit).toSet().toList();
-
     final inputDecor = InputDecoration(
       filled: true,
       fillColor: const Color(0xFFF9FAFB),
@@ -59,6 +64,7 @@ class DetailForm extends StatelessWidget {
     final optionsAliran = _getOptions('Aliran');
     final optionsPenyebab = _getOptions('Penyebab');
     final optionsTindakan = _getOptions('Tindakan');
+// ... bagian atas kode tetap sama ...
 
     return SectionCard(
       title: "Detail Lapangan",
@@ -67,36 +73,41 @@ class DetailForm extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Jenis Infrastruktur
-          SearchableSelect<String>(
-            label: "Jenis Infrastruktur",
-            items: const ['Jembatan', 'Pipa (PVC)', 'Gorong-Gorong Baja (NF)'],
-            value: form['jenis_infrastruktur'],
-            hint: availableUnits.isEmpty ? "Data Kosong" : "Pilih Jenis...",
-            itemLabel: (item) => item,
-            onChanged: (val) {
-              form['jenis_infrastruktur'] = val;
-              onUpdate();
-            },
-          ),
+Row(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Expanded(
+      child: SearchableSelect<InfrastructureMaster>(
+        label: "No Infrastructure",
+        items: infrastructureMasterData,
+        value: selectedInfrastructureMaster,             
+        hint: "Cari No Infrastructure...",
+        itemLabel: (item) => "${item.id_object}",
+        onChanged: (master) {
+          form['jenis_infrastruktur'] = master?.category ?? '-';
+          onInfrastructureMasterChanged(master);
+          onUpdate();
+        },
+      ),
+    ),
+    const SizedBox(width: 16),
+    Expanded(
+      child: _buildTextField(
+        label: "Jenis Infrastruktur",
+        initialValue: form['jenis_infrastruktur'] ?? '-', 
+        decoration: inputDecor.copyWith(
+          fillColor: Colors.grey[200], // Gelapkan sedikit agar terlihat readonly
+        ),
+        readOnly: true,
+        onChanged: (_) {}, 
+      ),
+    ),
+  ],
+),
           const SizedBox(height: 20),
-
-          // Baris 1: ID Objek & Aliran
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _buildTextField(
-                  label: "ID Objek",
-                  initialValue: form['id_objek'],
-                  decoration: inputDecor,
-                  onChanged: (val) {
-                    form['id_objek'] = val;
-                    onUpdate();
-                  },
-                ),
-              ),
-              const SizedBox(width: 16),
               Expanded(
                 child: _buildScoredDropdown(
                   label: "Kondisi Aliran",
@@ -108,24 +119,6 @@ class DetailForm extends StatelessWidget {
                     form['kondisi_aliran'] = val;
                     onUpdate();
                   },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Baris 2: Tindakan & Penyebab
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _buildScoredDropdown(
-                  label: "Tindakan",
-                  score: scores['tindakan'] ?? 0,
-                  value: _getValidValue(form['tindakan'], optionsTindakan),
-                  options: optionsTindakan,
-                  decoration: inputDecor,
-                  onChanged: onTindakanChanged,
                 ),
               ),
               const SizedBox(width: 16),
@@ -144,18 +137,30 @@ class DetailForm extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+
+          // Baris 3: Tindakan (Full Width atau Row)
+          _buildScoredDropdown(
+            label: "Tindakan",
+            score: scores['tindakan'] ?? 0,
+            value: _getValidValue(form['tindakan'], optionsTindakan),
+            options: optionsTindakan,
+            decoration: inputDecor,
+            onChanged: onTindakanChanged,
+          ),
         ],
       ),
     );
   }
 
-  // --- Widget Components ---
+  // --- Update Helper Widget ---
 
   Widget _buildTextField({
     required String label,
     required String? initialValue,
     required InputDecoration decoration,
     required Function(String) onChanged,
+    bool readOnly = false, // Tambahkan parameter ini
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,14 +173,20 @@ class DetailForm extends StatelessWidget {
           ),
         ),
         TextFormField(
+          key: Key(initialValue ?? ''), // Penting agar text terupdate saat state berubah
           initialValue: initialValue,
           decoration: decoration,
-          style: const TextStyle(fontSize: 13),
+          readOnly: readOnly,
+          style: TextStyle(
+            fontSize: 13, 
+            color: readOnly ? Colors.grey[700] : Colors.black,
+          ),
           onChanged: onChanged,
         ),
       ],
     );
   }
+
 
   Widget _buildScoredDropdown({
     required String label,

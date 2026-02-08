@@ -8,12 +8,16 @@ class ObservationEntryPage extends StatefulWidget {
   final List<KaryawanModel> listKaryawan;
   final List<LokasiModel> listLokasi;
   final List<SkoringConfig> skoringData;
+  final List<WaterLevelMaster> waterLevelMasterData;
+  final List<InfrastructureMaster> infrastructureMasterData;
 
   const ObservationEntryPage({
     super.key,
     required this.listKaryawan,
     required this.listLokasi,
     required this.skoringData,
+    required this.waterLevelMasterData,
+    required this.infrastructureMasterData,
   });
 
   @override
@@ -116,13 +120,15 @@ class _ObservationEntryPageState extends State<ObservationEntryPage> {
           skoringData: filteredSkoringData, // Kirim data yang sudah difilter
           listKaryawan: widget.listKaryawan, // Ambil dari Parent
           listLokasi: widget.listLokasi,     // Ambil dari Parent
+          infrastructureMasterData: widget.infrastructureMasterData, // Ambil dari Parent
         );
       case 'water_level':
           return WaterLevelForm(
           key: const ValueKey('weekly'),
           skoringData: filteredSkoringData, // Kirim data yang sudah difilter
           listKaryawan: widget.listKaryawan, // Ambil dari Parent
-          listLokasi: widget.listLokasi,     // Ambil dari Parent
+          listLokasi: widget.listLokasi,  
+          waterLevelMasterData: widget.waterLevelMasterData, // Ambil dari Parent
         );
       default:
         return const SizedBox();

@@ -6,17 +6,23 @@ import '../../../../widgets/common_widgets.dart';
 class DetailForm extends StatelessWidget {
   final Map<String, dynamic> form;
   final Map<String, int> scores;
+  final List<WaterLevelMaster> waterLevelMasterData;
   final List<SkoringConfig> skoringData;
   final VoidCallback onUpdate;
   final Function(String?) onTindakanChanged;
+  final WaterLevelMaster? selectedWaterLevelMaster;
+  final Function(WaterLevelMaster?) onWaterLevelMasterChanged;
 
   const DetailForm({
     super.key,
     required this.form,
     required this.scores,
     required this.skoringData,
+    required this.waterLevelMasterData,
     required this.onUpdate,
     required this.onTindakanChanged,
+    this.selectedWaterLevelMaster,
+    required this.onWaterLevelMasterChanged,
   });
 
   // --- Helpers ---
@@ -70,17 +76,16 @@ class DetailForm extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _buildTextField(
-                  label: "No Water Level",
-                  initialValue: form['no_water_level'],
-                  decoration: inputDecor,
-                  onChanged: (val) {
-                    form['no_water_level'] = val;
-                    onUpdate();
-                  },
-                ),
-              ),
+          Expanded(
+            child: SearchableSelect<WaterLevelMaster>(
+              label: "No Water Level",
+              items: waterLevelMasterData,
+              value: selectedWaterLevelMaster,
+              hint: "Cari No Water Level...",
+              itemLabel: (item) => item.no_wl.toString(),
+              onChanged: onWaterLevelMasterChanged,
+            ),
+          ),
               const SizedBox(width: 16),
                Expanded(
                 child: _buildScoredTextField(

@@ -22,6 +22,8 @@ class ApiService {
         _dio.get('list/karyawan'),
         _dio.get('list/lokasi'),
         _dio.get('skoring'),
+        _dio.get('list/water-level-master'),
+        _dio.get('list/infrastructure-master')
       ]);
 
       debugPrint("✅ Master Data Downloaded");
@@ -29,6 +31,8 @@ class ApiService {
         'karyawan': responses[0].data,
         'lokasi': responses[1].data,
         'skoring': responses[2].data,
+        'waterLevelMaster': responses[3].data,
+        'infrastructureMaster': responses[4].data,
       };
     } catch (e) {
       debugPrint("❌ Error Fetch Master Data: $e");
