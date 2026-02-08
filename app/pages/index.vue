@@ -74,7 +74,7 @@
               </div>
               
               <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-green-700 transition-colors">
-                PalmWater OS Apps
+                PWOS Apps
               </h3>
               <p class="text-gray-600 text-sm leading-relaxed mb-6">
                 Aplikasi mobile offline-first yang dirancang khusus untuk pengamatan di lapangan secara cepat dan akurat.
