@@ -13,31 +13,29 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    /**
-     * Helper untuk mendapatkan bulan dan tahun saat ini.
+  /**
+     * Update: Helper untuk mendapatkan bulan dan tahun dari request atau default ke saat ini.
      */
-    private function getCurrentPeriod()
+    private function getSelectedPeriod(Request $request)
     {
         return [
-            'month' => now()->month,
-            'year' => now()->year
+            'month' => $request->query('month', now()->month),
+            'year'  => $request->query('year', now()->year)
         ];
     }
 
     /**
-     * Ringkasan Statistik Utama (Filtered by This Month)
+     * Ringkasan Statistik Utama (Filtered by Selected Month)
      */
-    public function index()
+    public function index(Request $request) // Tambahkan Request $request
     {
-        $period = $this->getCurrentPeriod();
+        $period = $this->getSelectedPeriod($request);
 
-        // 1. Ambil lokasi yang hanya memiliki aktivitas di bulan ini
         $lokasiList = Lokasi::where(function($query) use ($period) {
                 $query->whereHas('monitoringHarian', fn($q) => $q->whereMonth('tanggal', $period['month'])->whereYear('tanggal', $period['year']))
                       ->orWhereHas('monitoringMingguan', fn($q) => $q->whereMonth('tanggal', $period['month'])->whereYear('tanggal', $period['year']))
                       ->orWhereHas('waterLevel', fn($q) => $q->whereMonth('tanggal', $period['month'])->whereYear('tanggal', $period['year']));
             })
-            // 2. Hitung rata-rata skor per kategori di bulan ini
             ->withAvg(['monitoringHarian as avg_harian' => fn($q) => $q->whereMonth('tanggal', $period['month'])->whereYear('tanggal', $period['year'])], 'rata_rata_skor')
             ->withAvg(['monitoringMingguan as avg_mingguan' => fn($q) => $q->whereMonth('tanggal', $period['month'])->whereYear('tanggal', $period['year'])], 'rata_rata_skor')
             ->withAvg(['waterLevel as avg_water' => fn($q) => $q->whereMonth('tanggal', $period['month'])->whereYear('tanggal', $period['year'])], 'rata_rata_skor')
@@ -57,19 +55,9 @@ class DashboardController extends Controller
             $score = 0; 
             $weight = 0;
 
-            // Bobot: Harian (40%), Mingguan (30%), Water Level (30%)
-            if (!is_null($lokasi->avg_harian)) { 
-                $score += ($lokasi->avg_harian * 0.4); 
-                $weight += 0.4; 
-            }
-            if (!is_null($lokasi->avg_mingguan)) { 
-                $score += ($lokasi->avg_mingguan * 0.3); 
-                $weight += 0.3; 
-            }
-            if (!is_null($lokasi->avg_water)) { 
-                $score += ($lokasi->avg_water * 0.3); 
-                $weight += 0.3; 
-            }
+            if (!is_null($lokasi->avg_harian)) { $score += ($lokasi->avg_harian * 0.4); $weight += 0.4; }
+            if (!is_null($lokasi->avg_mingguan)) { $score += ($lokasi->avg_mingguan * 0.3); $weight += 0.3; }
+            if (!is_null($lokasi->avg_water)) { $score += ($lokasi->avg_water * 0.3); $weight += 0.3; }
 
             $finalScore = $weight > 0 ? ($score / $weight) : 0;
             $totalScoreSum += $finalScore;
@@ -77,59 +65,29 @@ class DashboardController extends Controller
             $analisa = StatusHelper::determineStatus($finalScore);
             $kategori = $analisa['kategori'] ?? 'Kelas 3';
 
-            if (isset($stats[$kategori])) {
-                $stats[$kategori]++;
-            }
+            if (isset($stats[$kategori])) { $stats[$kategori]++; }
         }
 
         if ($stats['total_lokasi_aktif'] > 0) {
             $stats['rata_rata_keseluruhan'] = round($totalScoreSum / $stats['total_lokasi_aktif'], 2);
         }
 
+        // Format nama bulan untuk response
+        $periodeDisplay = Carbon::createFromDate($period['year'], $period['month'], 1)->translatedFormat('F Y');
+
         return response()->json([
             'status' => true,
             'data'   => $stats,
-            'periode' => now()->translatedFormat('F Y')
+            'periode' => $periodeDisplay
         ]);
     }
 
     /**
-     * Aktivitas Terbaru (Global - Tidak Difilter Bulan)
+     * Status Infrastruktur (Filtered by Selected Month)
      */
-    public function recentActivities() 
+    public function infrastructureStatus(Request $request)
     {
-        $harian = MonitoringHarian::with(['lokasi', 'karyawan'])
-            ->latest()
-            ->take(5)
-            ->get()
-            ->map(fn($item) => $this->formatLog($item, 'Daily'));
-
-        $mingguan = MonitoringMingguan::with(['lokasi', 'karyawan'])
-            ->latest()
-            ->take(5)
-            ->get()
-            ->map(fn($item) => $this->formatLog($item, 'Infrastructure'));
-
-        $water = WaterLevel::with(['lokasi', 'karyawan'])
-            ->latest()
-            ->take(5)
-            ->get()
-            ->map(fn($item) => $this->formatLog($item, 'Water Level'));
-
-        $recentRecords = $harian->concat($mingguan)->concat($water)
-            ->sortByDesc('created_at')
-            ->take(8)
-            ->values();
-
-        return response()->json($recentRecords);
-    }
-
-    /**
-     * Status Infrastruktur (Filtered by This Month)
-     */
-    public function infrastructureStatus()
-    {
-        $period = $this->getCurrentPeriod();
+        $period = $this->getSelectedPeriod($request);
 
         $latestIds = DB::table('monitoring_mingguan')
             ->select(DB::raw('MAX(id) as latest_id'))
@@ -147,7 +105,6 @@ class DashboardController extends Controller
         
         $details = collect($categories)->map(function ($kind) use ($data) {
             $items = $data->where('jenis_infrastruktur', $kind);
-            
             $kelas1 = 0; $kelas2 = 0; $kelas3 = 0;
 
             foreach ($items as $item) {
@@ -176,11 +133,11 @@ class DashboardController extends Controller
     }
 
     /**
-     * Status Water Level (Filtered by This Month)
+     * Status Water Level (Filtered by Selected Month)
      */
-    public function waterLevelStatus()
+    public function waterLevelStatus(Request $request)
     {
-        $period = $this->getCurrentPeriod();
+        $period = $this->getSelectedPeriod($request);
 
         $latestIds = DB::table('water_levels')
             ->select(DB::raw('MAX(id) as latest_id'))
@@ -214,7 +171,38 @@ class DashboardController extends Controller
             ]
         ]);
     }
+    /**
+     * Aktivitas Terbaru (Global - Tidak Difilter Bulan)
+     */
+    public function recentActivities() 
+    {
+        $harian = MonitoringHarian::with(['lokasi', 'karyawan'])
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(fn($item) => $this->formatLog($item, 'Daily'));
 
+        $mingguan = MonitoringMingguan::with(['lokasi', 'karyawan'])
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(fn($item) => $this->formatLog($item, 'Infrastructure'));
+
+        $water = WaterLevel::with(['lokasi', 'karyawan'])
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(fn($item) => $this->formatLog($item, 'Water Level'));
+
+        $recentRecords = $harian->concat($mingguan)->concat($water)
+            ->sortByDesc('created_at')
+            ->take(8)
+            ->values();
+
+        return response()->json($recentRecords);
+    }
+
+   
     /**
      * Formatter Log untuk Recent Activities
      */

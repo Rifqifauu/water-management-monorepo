@@ -12,9 +12,7 @@ class MonitoringMingguan extends Model
     'jenis_infrastruktur', 'kondisi_aliran', 'penyebab', 'tindakan', 'keterangan', 
     'skor_aliran', 'skor_penyebab', 'skor_tindakan', 'rata_rata_skor', 'foto_path', 'foto_after'
 ];
-protected $casts = [
-    'tanggal' => 'date',
-];
+
     public function lokasi()
     {
         return $this->belongsTo(Lokasi::class, 'id_lokasi', 'id');

@@ -33,8 +33,6 @@ class MonitoringHarianController extends Controller
             'foto_path'       => 'nullable|image|mimes:jpeg,png,jpg|max:10240',
             'foto_after'      => 'nullable|image|mimes:jpeg,png,jpg|max:10240',
             'keterangan'      => 'nullable|string',
-            
-            // Kolom Skoring (Denormalisasi)
             'skor_kedalaman'    => 'nullable|numeric',
             'skor_jumlah_pokok' => 'nullable|numeric',
             'skor_durasi'       => 'nullable|numeric',
@@ -58,26 +56,45 @@ class MonitoringHarianController extends Controller
         return $path;
     }
 
-    public function index(Request $request)
-    {
-        // Hilangkan .with('skoring') karena data sudah di tabel yang sama
-        $query = MonitoringHarian::query()->with(['karyawan', 'lokasi']);
+public function index(Request $request)
+{
+    $query = MonitoringHarian::query()->with(['karyawan', 'lokasi']);
 
-        $query->when($request->filled('search'), function ($q) use ($request) {
-            $search = $request->search;
-            $q->where(function ($subQ) use ($search) {
-                $subQ->where('keterangan', 'like', "%{$search}%")
-                      ->orWhereHas('lokasi', function ($loc) use ($search) {
-                          $loc->where('blok', 'like', "%{$search}%")
-                              ->orWhere('afdeling', 'like', "%{$search}%");
-                      });
-            });
+    // 1. Logika Search (Sudah ada, saya tambahkan pencarian nama karyawan agar lebih sakti)
+    $query->when($request->filled('search'), function ($q) use ($request) {
+        $search = $request->search;
+        $q->where(function ($subQ) use ($search) {
+            $subQ->where('keterangan', 'like', "%{$search}%")
+                  ->orWhereHas('lokasi', function ($loc) use ($search) {
+                      $loc->where('blok', 'like', "%{$search}%")
+                          ->orWhere('afdeling', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('karyawan', function ($kar) use ($search) {
+                      $kar->where('nama', 'like', "%{$search}%");
+                  });
         });
+    });
 
-        $query->orderBy('tanggal', 'desc');
-        return response()->json($query->paginate(10));
-    }
+    // 2. Filter Tanggal (Wajib pakai whereDate agar jam tidak mengganggu)
+    $query->when($request->filled('date'), function ($q) use ($request) {
+        $q->whereDate('tanggal', $request->date);
+    });
 
+    // 3. Filter Karyawan
+    $query->when($request->filled('id_karyawan'), function ($q) use ($request) {
+        // Pastikan nama kolom di database sesuai, apakah 'id_karyawan' atau 'karyawan_id'
+        $q->where('id_karyawan', $request->id_karyawan);
+    });
+
+    // 4. Filter Lokasi
+    $query->when($request->filled('id_lokasi'), function ($q) use ($request) {
+        $q->where('id_lokasi', $request->id_lokasi);
+    });
+
+    $query->orderBy('tanggal', 'desc');
+
+    return response()->json($query->paginate( 10));
+}
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), $this->getValidationRules());

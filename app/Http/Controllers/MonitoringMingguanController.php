@@ -57,7 +57,6 @@ class MonitoringMingguanController extends Controller
             'tindakan'            => 'nullable|string',
             'keterangan'          => 'nullable|string',
             
-            // VALIDASI FIELD SKOR BARU
             'skor_aliran'         => 'nullable|numeric',
             'skor_penyebab'       => 'nullable|numeric',
             'skor_tindakan'       => 'nullable|numeric',

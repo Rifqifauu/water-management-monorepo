@@ -32,7 +32,6 @@ class MonitoringHarian extends Model
         'foto_after',
         'keterangan',
 
-        // Skor Denormalisasi (Snapshot)
         'skor_kedalaman',
         'skor_jumlah_pokok',
         'skor_durasi',
@@ -40,7 +39,6 @@ class MonitoringHarian extends Model
         'skor_penyebab',
         'skor_tindakan',
         
-        // Hasil Akhir
         'rata_rata_skor',
     ];
 

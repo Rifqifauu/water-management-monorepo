@@ -136,9 +136,14 @@ private function formatHarianDetail($item) {
             'jumlah_pokok'   => $item->jumlah_pokok . ' pokok',
             'aliran'         => $item->kondisi_aliran,
             'tindakan'         => $item->tindakan,
+            'durasi_genangan'=> $item->durasi_genangan,
+            'penyebab' => $item->penyebab
         ],
         'skor' => $item->rata_rata_skor,
-        'dokumentasi' => $item->foto_path ? url('storage/'.$item->foto_path) : null,
+        'dokumentasi' => [
+            'before' => $item->foto_path ? url('storage/'.$item->foto_path) : null,
+            'after' => $item->foto_after ? url('storage/'.$item->foto_after) : null,
+        ]
     ];
 }
 
@@ -148,8 +153,17 @@ private function formatMingguanDetail($item) {
         'tanggal'       => $this->safeDateFormat($item->tanggal),
         'pengamat'      => $item->karyawan->nama ?? '-',
         'infra'         => $item->jenis_infrastruktur,
+        'id_objek'      => $item->id_objek,
+        'kondisi_riil' => [
+            'kondisi_aliran' => $item->kondisi_aliran,
+            'penyebab' => $item->penyebab,
+            'tindakan' => $item->tindakan
+        ],
         'skor'          => $item->rata_rata_skor,
-        'dokumentasi'   => $item->foto_path ? url('storage/'.$item->foto_path) : null,
+          'dokumentasi' => [
+            'before' => $item->foto_path ? url('storage/'.$item->foto_path) : null,
+            'after' => $item->foto_after ? url('storage/'.$item->foto_after) : null,
+        ]
     ];
 }
 
@@ -158,10 +172,18 @@ private function formatWaterLevelDetail($item) {
         'id'            => $item->id,
         'tanggal'       => $this->safeDateFormat($item->tanggal),
         'pengamat'      => $item->karyawan->nama ?? '-',
-        'tinggi_air'    => $item->tinggi_level_air . ' cm',
+        'no_water_level'=> $item->no_water_level,
+        'kondisi_riil' => [
+            'tinggi_level_air' => $item->tinggi_level_air,
+            'jarak_ke_bibir' =>$item->jarak_ke_bibir,
+            'kondisi_aliran' => $item->kondisi_aliran,
+            'risiko' => $item->risiko,
+            'kapasitas_drainase' => $item->kapasitas_drainase
+        ],
         'skor'          => $item->rata_rata_skor,
-        'foto'          => $item->foto_path ? url('storage/'.$item->foto_path) : null,
-    ];
+  'dokumentasi' => [
+            'before' => $item->foto_path ? url('storage/'.$item->foto_path) : null,
+        ]    ];
 }
 /**
  * Helper: Jaring Pengaman Format Tanggal
@@ -205,23 +227,28 @@ private function safeDateFormat($date)
     /**
      * Statistik Counter (Total Laporan)
      */
-    public function countMonitoring(Request $request)
-    {
-        $month = $request->query('month', now()->month);
-        $year = $request->query('year', now()->year);
+public function countMonitoring(Request $request)
+{
+    // Gunakan nilai dari request, jika tidak ada pakai bulan/tahun saat ini
+    $month = $request->query('month', now()->month);
+    $year = $request->query('year', now()->year);
 
-        return response()->json([
-            'status' => true,
-            'data' => [
-                'periode' => Carbon::create($year, $month, 1)->translatedFormat('F Y'),
-                'stats'   => [
-                    'harian'      => MonitoringHarian::whereMonth('tanggal', $month)->whereYear('tanggal', $year)->count(),
-                    'mingguan'    => MonitoringMingguan::whereMonth('tanggal', $month)->whereYear('tanggal', $year)->count(),
-                    'water_level' => WaterLevel::whereMonth('tanggal', $month)->whereYear('tanggal', $year)->count(),
-                ]
+    // Tambahkan pengecekan format (pastikan angka)
+    $month = (int)$month;
+    $year = (int)$year;
+
+    return response()->json([
+        'status' => true,
+        'data' => [
+            'periode' => \Carbon\Carbon::create($year, $month, 1)->translatedFormat('F Y'),
+            'stats'   => [
+                'harian'      => MonitoringHarian::whereMonth('tanggal', $month)->whereYear('tanggal', $year)->count(),
+                'mingguan'    => MonitoringMingguan::whereMonth('tanggal', $month)->whereYear('tanggal', $year)->count(),
+                'water_level' => WaterLevel::whereMonth('tanggal', $month)->whereYear('tanggal', $year)->count(),
             ]
-        ]);
-    }
+        ]
+    ]);
+}
 
     // --- PRIVATE HELPERS (Fungsi Pendukung) ---
 
