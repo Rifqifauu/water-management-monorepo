@@ -95,6 +95,8 @@ const menuItems = [
       { name: 'Employee', url: '/dashboard/master/karyawan' },
       { name: 'Location', url: '/dashboard/master/lokasi' },
       { name: 'Skoring', url: '/dashboard/master/skoring' },
+      { name: 'Infrastructure', url: '/dashboard/master/infrastructure' },
+      {name:'Water Level', url:'/dashboard/master/water-level' }
     ]
   },
 ];

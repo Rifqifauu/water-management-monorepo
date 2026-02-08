@@ -85,19 +85,45 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              
               <div>
-                 <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">ID OBJEK</label>
-                 <input v-model="form.id_objek" required type="text" :class="cls.input" placeholder="ID Objek (Tanpa Spasi)">
+                 <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                   ID OBJEK <span class="text-red-500">*</span>
+                 </label>
+                 <select 
+                   v-model="form.id_objek" 
+                   @change="handleObjekChange" 
+                   required 
+                   :class="cls.select" 
+                   :disabled="!form.id_lokasi"
+                  >
+                    <option value="" disabled>
+                      {{ !form.id_lokasi ? 'Pilih Lokasi & Blok Dulu' : 'Pilih ID Objek' }}
+                    </option>
+                    
+                    <option v-for="obj in sortedObjekList" :key="obj.id" :value="obj.id_object">
+                       {{ obj.id_object }} {{ obj._distanceText }} - {{ obj.category }}
+                    </option>
+                 </select>
+                 
+                 <p v-if="form.lat_aktual && sortedObjekList.length" class="text-xs text-green-600 mt-1 font-semibold flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>
+                    Diurutkan dari yang terdekat
+                 </p>
               </div>
+
               <div>
                  <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Tipe Objek</label>
-                 <select v-model="form.jenis_infrastruktur" required :class="cls.select">
-                    <option value="">Pilih Infrastruktur</option>
-                    <option value="Jembatan">Jembatan</option>
-                    <option value="Pipa (PVC)">Pipa (PVC)</option>
-                    <option value="Gorong-Gorong Baja (NF)">Gorong-Gorong Baja (NF)</option>
-                 </select>
+                 <input 
+                    v-model="form.jenis_infrastruktur" 
+                    type="text" 
+                    readonly 
+                    required
+                    placeholder="Otomatis terisi..."
+                    :class="[cls.input, 'bg-gray-100 cursor-not-allowed text-gray-500']"
+                 >
               </div>
+
               <div>
                  <div class="flex justify-between items-center mb-2">
                    <label class="block text-sm font-bold text-gray-700 uppercase tracking-wide">Kondisi Aliran</label>
@@ -135,7 +161,7 @@
             </div>
           </div>
 
-                 <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200">
+          <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
               <div>
@@ -205,12 +231,15 @@
 import { reactive, ref, onMounted, computed, watch, h } from 'vue'
 import Swal from 'sweetalert2'
 import { useApi } from '@/composables/useApi' 
+
+// --- SETUP PROPS & REFS ---
 const fileInputBefore = ref(null)
 const fileInputAfter = ref(null)
 const props = defineProps({
   skoringData: { type: Array, default: () => [] }
 })
 
+// --- UI HELPERS ---
 const ScoreBadge = ({ skor }) => {
   if (!skor || skor === 0) return null
   const colors = skor === 3 ? 'bg-green-100 text-green-700' : skor === 2 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
@@ -219,15 +248,20 @@ const ScoreBadge = ({ skor }) => {
 
 const cls = {
   input: "w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all",
-  select: "w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 appearance-none",
+  select: "w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 appearance-none disabled:bg-gray-200 disabled:text-gray-400",
   uploadBox: "mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-xl bg-white hover:bg-gray-50 transition cursor-pointer relative min-h-[160px] items-center",
   delBtn: "absolute top-2 right-2 bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center shadow-lg hover:bg-red-700",
   btnPrimary: "flex-1 flex justify-center items-center gap-3 bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 transition transform active:scale-95 disabled:opacity-70"
 }
 
-// State Data
-const listKaryawan = ref([]), listLokasi = ref([])
-const selectedAfdeling = ref(''), selectedBlok = ref(''), isLoading = ref(false)
+// --- STATE DATA ---
+const listKaryawan = ref([])
+const listLokasi = ref([])
+const listInfrastruktur = ref([]) // Akan diisi data dari endpoint /list/infrastructure-master
+
+const selectedAfdeling = ref('')
+const selectedBlok = ref('')
+const isLoading = ref(false)
 
 const previewUrl = ref(null), photoFile = ref(null)
 const previewAfterUrl = ref(null), photoAfterFile = ref(null)
@@ -236,17 +270,82 @@ const form = reactive({
   tanggal: new Date().toISOString().substr(0, 10), 
   id_lokasi: '', 
   id_karyawan: '',
-  id_objek: '',
+  id_objek: '',           // Ini akan menyimpan "20"
+  jenis_infrastruktur: '', // Ini akan menyimpan "JEMBATAN KAYU"
   lat_aktual: '', 
   long_aktual: '', 
-  jenis_infrastruktur: '', 
   kondisi_aliran: '', 
   penyebab: '', 
   tindakan: '', 
   keterangan: ''
 })
 
-// --- LOGIC SKORING BERDASARKAN JSON ---
+// ==========================================
+// LOGIKA UTAMA: GEOLOCATION & SORTING & MAPPING
+// ==========================================
+
+// 1. Rumus Haversine (Hitung Jarak GPS dalam Meter)
+const getDistanceInMeters = (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    const R = 6371e3; // Radius Bumi (meter)
+    const toRad = x => x * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+// 2. Computed: Filter & Sort Daftar Objek
+const sortedObjekList = computed(() => {
+    // Validasi: Lokasi harus dipilih dulu
+    if (!form.id_lokasi) return [];
+    
+    // FILTER: Berdasarkan id_lokasi (Gunakan == untuk handle string "927" vs number 927)
+    let filtered = listInfrastruktur.value.filter(item => item.id_lokasi == form.id_lokasi);
+
+    // SORTING JARAK (Jika User sudah ambil GPS)
+    if (form.lat_aktual && form.long_aktual && filtered.length > 0) {
+        return filtered.map(item => {
+            // Parsing koordinat dari JSON (karena bentuknya string)
+            const latDb = parseFloat(item.latitude);
+            const longDb = parseFloat(item.longitude);
+
+            const dist = getDistanceInMeters(
+                parseFloat(form.lat_aktual),
+                parseFloat(form.long_aktual),
+                latDb,
+                longDb
+            );
+            
+            return {
+                ...item,
+                _distance: dist !== null ? dist : 99999999, // Infinity jika koordinat null
+                _distanceText: dist !== null ? `(${Math.round(dist)}m)` : ''
+            };
+        }).sort((a, b) => a._distance - b._distance); // Sort Terdekat (ASC)
+    }
+
+    // Default Sorting: Berdasarkan ID Object ASC (jika belum ambil GPS)
+    // Menggunakan localeCompare untuk string, atau a-b untuk number
+    return filtered.sort((a, b) => (a.id_object || '').toString().localeCompare((b.id_object || '').toString()));
+})
+
+// 3. Handler saat ID Objek dipilih -> Auto isi Tipe Infrastruktur
+const handleObjekChange = () => {
+    // Cari object di list berdasarkan id_object
+    const selectedObj = listInfrastruktur.value.find(i => i.id_object === form.id_objek);
+    if (selectedObj) {
+        // Mapping field 'category' dari JSON ke 'jenis_infrastruktur' form
+        form.jenis_infrastruktur = selectedObj.category || '';
+    }
+}
+
+// ==========================================
+
+// --- Logic Scoring ---
 const getOptions = (param) => props.skoringData.filter(i => i.kategori_parameter === param && i.label_kondisi !== null)
 
 const scores = computed(() => {
@@ -266,71 +365,62 @@ const averageScore = computed(() => {
   return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : "0.00"
 })
 
-// --- GPS HANDLER ---
+// --- GPS Handler ---
 const getGeoLocation = () => {
     if (!navigator.geolocation) return Swal.fire('Error', 'GPS tidak didukung', 'error')
     Swal.fire({ title: 'Mencari Koordinat...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
     
     navigator.geolocation.getCurrentPosition(pos => {
-        form.lat_aktual = pos.coords.latitude; form.long_aktual = pos.coords.longitude
+        form.lat_aktual = pos.coords.latitude; 
+        form.long_aktual = pos.coords.longitude
         Swal.close()
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Lokasi didapat', timer: 2000, showConfirmButton: false })
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Lokasi didapat & Objek diurutkan!', timer: 2000, showConfirmButton: false })
     }, err => {
         Swal.close(); Swal.fire('Error', err.message, 'error')
     })
 }
 
-// Update fungsi handleFileUpload agar lebih akurat
+// --- Image Handlers ---
 const handleFileUpload = (e, type) => {
   const file = e.target.files[0]
   if (!file) return
-  if (file.size > 10 * 1024 * 1024) {
-    return Swal.fire('Error', 'Ukuran file maksimal 10MB', 'error')
-  }
+  if (file.size > 10 * 1024 * 1024) return Swal.fire('Error', 'Ukuran file maksimal 10MB', 'error')
 
   const url = URL.createObjectURL(file)
   if (type === 'before') {
-    photoFile.value = file
-    previewUrl.value = url
+    photoFile.value = file; previewUrl.value = url
   } else {
-    photoAfterFile.value = file
-    previewAfterUrl.value = url
+    photoAfterFile.value = file; previewAfterUrl.value = url
   }
 }
 
 const clearImage = (type) => {
   if (type === 'before') {
     if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
-    previewUrl.value = null
-    photoFile.value = null
-    if (fileInputBefore.value) fileInputBefore.value.value = ''
+    previewUrl.value = null; photoFile.value = null; if (fileInputBefore.value) fileInputBefore.value.value = ''
   } else {
     if (previewAfterUrl.value) URL.revokeObjectURL(previewAfterUrl.value)
-    previewAfterUrl.value = null
-    photoAfterFile.value = null
-    if (fileInputAfter.value) fileInputAfter.value.value = ''
+    previewAfterUrl.value = null; photoAfterFile.value = null; if (fileInputAfter.value) fileInputAfter.value.value = ''
   }
 }
+
+// --- Submit Data ---
 const saveData = async () => {
-  // Validasi Dasar
   if (!form.id_lokasi) return Swal.fire('Warning', 'Pilih Lokasi', 'warning')
+  if (!form.id_objek) return Swal.fire('Warning', 'Pilih ID Objek', 'warning') // Validasi baru
   if (!photoFile.value) return Swal.fire('Warning', 'Foto Before wajib diunggah', 'warning')
 
-  // Validasi Foto After jika ada tindakan
   const perluAfter = form.tindakan && form.tindakan == 'Eksekusi Rutin'
-  if (perluAfter && !photoAfterFile.value) {
-    return Swal.fire('Warning', 'Foto After wajib diunggah untuk tindakan yang dipilih', 'warning')
-  }
+  if (perluAfter && !photoAfterFile.value) return Swal.fire('Warning', 'Foto After wajib diunggah', 'warning')
 
   isLoading.value = true
   const fd = new FormData()
 
   Object.keys(form).forEach(k => fd.append(k, form[k] ?? ''))
-
-    fd.append('skor_aliran', scores.value.aliran)
-    fd.append('skor_penyebab', scores.value.penyebab)
-    fd.append('skor_tindakan', scores.value.tindakan)
-    fd.append('rata_rata_skor', averageScore.value)
+  fd.append('skor_aliran', scores.value.aliran)
+  fd.append('skor_penyebab', scores.value.penyebab)
+  fd.append('skor_tindakan', scores.value.tindakan)
+  fd.append('rata_rata_skor', averageScore.value)
 
   if (photoFile.value) fd.append('foto_path', photoFile.value)
   if (photoAfterFile.value && perluAfter) fd.append('foto_after', photoAfterFile.value)
@@ -345,17 +435,31 @@ const saveData = async () => {
     isLoading.value = false
   }
 }
-// --- MASTER DATA LOGIC ---
+
+// --- Data Fetching & Watchers ---
 const uniqueAfdelings = computed(() => [...new Set(listLokasi.value.map(i => i.afdeling))].sort())
 const filteredBloks = computed(() => listLokasi.value.filter(i => i.afdeling === selectedAfdeling.value).map(i => i.blok).sort())
 const resetBlok = () => { selectedBlok.value = ''; form.id_lokasi = '' }
 
 watch([selectedAfdeling, selectedBlok], ([a, b]) => {
     form.id_lokasi = (a && b) ? (listLokasi.value.find(l => l.afdeling === a && l.blok === b)?.id || '') : ''
+    form.id_objek = ''
+    form.jenis_infrastruktur = ''
 })
 
 onMounted(async () => {
-    const [kar, lok] = await Promise.all([useApi('list/karyawan'), useApi('list/lokasi')])
-    listKaryawan.value = kar; listLokasi.value = lok
+    try {
+        const [kar, lok, infra] = await Promise.all([
+            useApi('list/karyawan'), 
+            useApi('list/lokasi'), 
+            useApi('list/infrastructure-master') 
+        ])
+        listKaryawan.value = kar
+        listLokasi.value = lok
+        listInfrastruktur.value = infra
+    } catch (error) {
+        console.error("Gagal load data master", error)
+        Swal.fire('Error', 'Gagal memuat data master', 'error')
+    }
 })
 </script>

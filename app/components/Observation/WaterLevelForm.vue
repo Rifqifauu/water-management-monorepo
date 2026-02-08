@@ -8,12 +8,14 @@
             <h2 class="text-3xl font-extrabold tracking-tight">Water Level Observation</h2>
             <p class="mt-2 text-blue-100 text-lg">Monitoring Water Level & Drainage Capacity</p>
           </div>
-          <div
-            class="bg-white/20 backdrop-blur-md border border-white/30 px-6 py-3 rounded-2xl text-center min-w-[120px]">
+          <div class="bg-white/20 backdrop-blur-md border border-white/30 px-6 py-3 rounded-2xl text-center min-w-[120px]">
             <p class="text-xs font-bold uppercase tracking-wider text-blue-100">Rata-rata Skor</p>
             <p class="text-3xl font-black">{{ averageScore }}</p>
           </div>
         </div>
+        <svg class="absolute right-0 bottom-0 h-full w-48 text-white opacity-10 transform translate-x-10 translate-y-10" fill="currentColor" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="50"/>
+        </svg>
       </div>
 
       <div class="p-8">
@@ -22,10 +24,8 @@
           <div class="bg-white rounded-xl">
             <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
               <div class="bg-blue-100 p-2 rounded-lg text-blue-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
               <h3 class="text-xl font-bold text-gray-800">Informasi Dasar</h3>
@@ -33,37 +33,55 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Tanggal <span
-                    class="text-red-500">*</span></label>
+                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Tanggal <span class="text-red-500">*</span></label>
                 <input v-model="form.tanggal" type="date" required :class="cls.input">
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Observer Name <span
-                    class="text-red-500">*</span></label>
-                <SearchableSelect v-model="form.id_karyawan" :options="listKaryawan" label-key="nama" value-key="id"
-                  placeholder="Cari Nama Observer..." />
+                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Observer Name <span class="text-red-500">*</span></label>
+                <SearchableSelect 
+                  v-model="form.id_karyawan" 
+                  :options="listKaryawan" 
+                  label-key="nama" 
+                  value-key="id" 
+                  placeholder="Cari Nama Observer..." 
+                />
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-6">
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Afdeling <span
-                    class="text-red-500">*</span></label>
-                <SearchableSelect v-model="selectedAfdeling" :options="uniqueAfdelings" placeholder="Cari Afdeling..."
-                  @change="resetBlok" />
+                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Afdeling <span class="text-red-500">*</span></label>
+                <SearchableSelect v-model="selectedAfdeling" :options="uniqueAfdelings" placeholder="Cari Afdeling..." @change="resetBlok" />
               </div>
+              
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Block <span
-                    class="text-red-500">*</span></label>
-                <SearchableSelect v-model="selectedBlok" :options="filteredBloks" :disabled="!selectedAfdeling"
-                  placeholder="Cari Blok..." />
+                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Block <span class="text-red-500">*</span></label>
+                <SearchableSelect v-model="selectedBlok" :options="filteredBloks" :disabled="!selectedAfdeling" placeholder="Cari Blok..." />
               </div>
+
               <div>
-                <div class="flex justify-between items-center mb-2">
-                  <label class="block text-sm font-bold text-gray-700 uppercase tracking-wide">No Water Level</label>
-                </div>
-                <input v-model.number="form.no_water_level" type="text" :class="cls.input"
-                  placeholder="Masukkan no water level...">
+                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                   No Water Level <span class="text-red-500">*</span>
+                </label>
+                <select 
+                   v-model="form.no_water_level" 
+                   required 
+                   :class="cls.select"
+                   :disabled="!form.id_lokasi"
+                >
+                   <option value="" disabled>
+                     {{ !form.id_lokasi ? 'Pilih Lokasi & Blok Dulu' : 'Pilih Titik WL' }}
+                   </option>
+                   
+                   <option v-for="wl in sortedWaterLevelList" :key="wl.id" :value="wl.no_wl">
+                      {{ wl.no_wl }} {{ wl._distanceText }}
+                   </option>
+                </select>
+
+                <p v-if="form.lat_aktual && sortedWaterLevelList.length" class="text-xs text-green-600 mt-1 font-semibold flex items-center gap-1">
+                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>
+                   Diurutkan dari yang terdekat
+                </p>
               </div>
             </div>
           </div>
@@ -72,26 +90,20 @@
             <div class="grid md:grid-cols-2 gap-4 items-center mb-6">
               <div class="flex items-center gap-2">
                 <div class="bg-blue-600 p-1.5 rounded-full text-white">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
                 <h3 class="text-lg font-bold text-gray-800">Koordinat Lokasi</h3>
               </div>
-              <button type="button" @click="getGeoLocation"
-                class="flex items-center justify-center gap-2 text-sm bg-white text-blue-700 px-4 py-2 rounded-xl border border-blue-200 font-bold shadow-sm hover:bg-blue-50 transition active:scale-95">
+              <button type="button" @click="getGeoLocation" class="flex items-center justify-center gap-2 text-sm bg-white text-blue-700 px-4 py-2 rounded-xl border border-blue-200 font-bold shadow-sm hover:bg-blue-50 transition active:scale-95">
                 📍 Ambil Lokasi Saat Ini
               </button>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <input v-model="form.lat_aktual" type="number" step="any" placeholder="Latitude (contoh: -7.xxx)"
-                :class="cls.input">
-              <input v-model="form.long_aktual" type="number" step="any" placeholder="Longitude (contoh: 110.xxx)"
-                :class="cls.input">
+              <input v-model="form.lat_aktual" type="number" step="any" placeholder="Latitude (contoh: -7.xxx)" :class="cls.input">
+              <input v-model="form.long_aktual" type="number" step="any" placeholder="Longitude (contoh: 110.xxx)" :class="cls.input">
             </div>
           </div>
 
@@ -102,21 +114,17 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <div class="flex justify-between items-center mb-2">
-                  <label class="block text-sm font-bold text-gray-700 uppercase tracking-wide">Ketinggian Air
-                    (cm)</label>
+                  <label class="block text-sm font-bold text-gray-700 uppercase tracking-wide">Ketinggian Air (cm)</label>
                   <ScoreBadge :skor="scores.ketinggian" />
                 </div>
-                <input v-model.number="form.tinggi_level_air" type="number" step="0.01" :class="cls.input"
-                  placeholder="Masukkan tinggi air...">
+                <input v-model.number="form.tinggi_level_air" type="number" step="0.01" :class="cls.input" placeholder="0.00">
               </div>
               <div>
                 <div class="flex justify-between items-center mb-2">
-                  <label class="block text-sm font-bold text-gray-700 uppercase tracking-wide">Jarak ke Bibir
-                    (cm)</label>
+                  <label class="block text-sm font-bold text-gray-700 uppercase tracking-wide">Jarak ke Bibir (cm)</label>
                   <ScoreBadge :skor="scores.jarak" />
                 </div>
-                <input v-model.number="form.jarak_ke_bibir" type="number" step="0.01" :class="cls.input"
-                  placeholder="Masukkan jarak ke bibir...">
+                <input v-model.number="form.jarak_ke_bibir" type="number" step="0.01" :class="cls.input" placeholder="0.00">
               </div>
             </div>
           </div>
@@ -130,8 +138,7 @@
                 </div>
                 <select v-model="form.kondisi_aliran" required :class="cls.select">
                   <option value="" disabled>Pilih Aliran</option>
-                  <option v-for="opt in getOptions('Kondisi Aliran')" :key="opt.id" :value="opt.label_kondisi">{{
-                    opt.label_kondisi }}</option>
+                  <option v-for="opt in getOptions('Kondisi Aliran')" :key="opt.id" :value="opt.label_kondisi">{{ opt.label_kondisi }}</option>
                 </select>
               </div>
               <div>
@@ -141,34 +148,28 @@
                 </div>
                 <select v-model="form.risiko" required :class="cls.select">
                   <option value="" disabled>Pilih Risiko</option>
-                  <option v-for="opt in getOptions('Risiko')" :key="opt.id" :value="opt.label_kondisi">{{
-                    opt.label_kondisi }}</option>
+                  <option v-for="opt in getOptions('Risiko')" :key="opt.id" :value="opt.label_kondisi">{{ opt.label_kondisi }}</option>
                 </select>
               </div>
               <div>
                 <div class="flex justify-between items-center mb-2">
-                  <label class="block text-sm font-bold text-gray-700 uppercase tracking-wide">Kapasitas
-                    Drainase</label>
+                  <label class="block text-sm font-bold text-gray-700 uppercase tracking-wide">Kapasitas Drainase</label>
                   <ScoreBadge :skor="scores.drainase" />
                 </div>
                 <select v-model="form.kapasitas_drainase" required :class="cls.select">
                   <option value="" disabled>Pilih Kapasitas</option>
-                  <option v-for="opt in getOptions('Kapasitas Drainase')" :key="opt.id" :value="opt.label_kondisi">{{
-                    opt.label_kondisi }}</option>
+                  <option v-for="opt in getOptions('Kapasitas Drainase')" :key="opt.id" :value="opt.label_kondisi">{{ opt.label_kondisi }}</option>
                 </select>
               </div>
             </div>
           </div>
 
           <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200">
-            <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Foto Lokasi <span
-                class="text-red-500">*</span></label>
+            <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Foto Lokasi <span class="text-red-500">*</span></label>
             <div @click="$refs.fileInput.click()" :class="cls.uploadBox">
               <div v-if="!previewUrl" class="text-center">
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <p class="text-xs font-bold text-blue-600 mt-2 uppercase tracking-widest">Klik Upload Foto</p>
               </div>
@@ -179,22 +180,21 @@
               <input ref="fileInput" type="file" @change="handleFileUpload" accept="image/*" class="hidden" />
             </div>
             <div class="mt-6">
-              <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Keterangan
-                Tambahan</label>
-              <textarea v-model="form.keterangan" rows="3" :class="cls.input"
-                placeholder="Catatan tambahan..."></textarea>
+              <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Keterangan Tambahan</label>
+              <textarea v-model="form.keterangan" rows="3" :class="cls.input" placeholder="Catatan..."></textarea>
             </div>
           </div>
 
           <div class="flex flex-col md:flex-row gap-4 pt-4 border-t border-gray-200">
             <button type="submit" :disabled="isLoading" :class="cls.btnPrimary">
-              Save Observation
+              <span v-if="!isLoading">Save Observation</span>
+              <span v-else>Processing...</span>
             </button>
-            <button type="button" @click="$emit('close')"
-              class="px-8 py-4 border-2 border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition">
+            <button type="button" @click="$emit('close')" :disabled="isLoading" class="px-8 py-4 border-2 border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition">
               Cancel
             </button>
           </div>
+
         </form>
       </div>
     </div>
@@ -206,27 +206,35 @@ import { reactive, ref, onMounted, computed, watch, h } from 'vue'
 import Swal from 'sweetalert2'
 import { useApi } from '@/composables/useApi'
 
+// --- Props & Helper Components ---
 const props = defineProps({
   skoringData: { type: Array, default: () => [] }
 })
 
 const ScoreBadge = ({ skor }) => {
-  if (!skor) return null
-  const colors = skor === 3 ? 'bg-green-500 text-white' : skor === 2 ? 'bg-yellow-500 text-white' : 'bg-red-500 text-white'
+  if (skor === undefined || skor === null) return null
+  const colors = skor === 3 ? 'bg-green-600 text-white' : skor === 2 ? 'bg-yellow-500 text-white' : 'bg-red-600 text-white'
   return h('span', { class: `px-2 py-0.5 rounded text-[10px] font-black ${colors}` }, `SKOR: ${skor}`)
 }
 
+// --- Tailwind Classes ---
 const cls = {
-  input: "w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all",
-  select: "w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 appearance-none",
+  input: "w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all placeholder-gray-400",
+  select: "w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 appearance-none disabled:bg-gray-200 disabled:text-gray-400",
   uploadBox: "mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-xl bg-white hover:bg-gray-50 transition cursor-pointer relative min-h-[160px] items-center",
-  delBtn: "absolute top-2 right-2 bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center shadow-lg hover:bg-red-700",
-  btnPrimary: "flex-1 flex justify-center items-center gap-3 bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 transition transform active:scale-95 disabled:opacity-70"
+  delBtn: "absolute top-2 right-2 bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center shadow-lg hover:bg-red-700 transition",
+  btnPrimary: "flex-1 flex justify-center items-center gap-3 bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 transition transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
 }
 
-const listKaryawan = ref([]), listLokasi = ref([])
-const selectedAfdeling = ref(''), selectedBlok = ref(''), isLoading = ref(false)
-const previewUrl = ref(null), photoFile = ref(null)
+// --- State Variables ---
+const listKaryawan = ref([])
+const listLokasi = ref([])
+const listWaterLevel = ref([]) // Data Master Water Level Points
+
+const selectedAfdeling = ref('')
+const selectedBlok = ref('')
+const isLoading = ref(false)
+const previewUrl = ref(null), photoFile = ref(null), fileInput = ref(null)
 
 const form = reactive({
   tanggal: new Date().toISOString().substr(0, 10),
@@ -234,7 +242,7 @@ const form = reactive({
   id_karyawan: '',
   lat_aktual: '',
   long_aktual: '',
-  no_water_level: null, // Default set to 1
+  no_water_level: '', 
   tinggi_level_air: null,
   jarak_ke_bibir: null,
   kondisi_aliran: '',
@@ -243,38 +251,71 @@ const form = reactive({
   keterangan: ''
 })
 
-// --- GPS HANDLER ---
-const getGeoLocation = () => {
-  if (!navigator.geolocation) return Swal.fire('Error', 'GPS tidak didukung oleh browser Anda', 'error')
+// ==========================================
+// LOGIKA UTAMA: SORTING BERDASARKAN "no_wl"
+// ==========================================
 
-  Swal.fire({
-    title: 'Mencari Koordinat...',
-    text: 'Mohon tunggu sebentar',
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading()
-  })
-
-  navigator.geolocation.getCurrentPosition(pos => {
-    form.lat_aktual = pos.coords.latitude
-    form.long_aktual = pos.coords.longitude
-    Swal.close()
-    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Lokasi berhasil didapatkan', timer: 2000, showConfirmButton: false })
-  }, err => {
-    Swal.close()
-    Swal.fire('Error GPS', 'Gagal mengambil lokasi. Pastikan izin GPS aktif.', 'error')
-  }, { enableHighAccuracy: true })
+// 1. Rumus Haversine (Hitung Jarak dalam Meter)
+const getDistanceInMeters = (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    const R = 6371e3; 
+    const toRad = x => x * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
 }
 
-// --- LOGIC SKORING ---
+// 2. Computed: Filter & Sort Daftar Water Level
+const sortedWaterLevelList = computed(() => {
+    // Validasi: Lokasi harus dipilih dulu
+    if (!form.id_lokasi) return [];
+    
+    // FILTER: id_lokasi (Gunakan == untuk handle string "885" dari JSON vs number dari form)
+    let filtered = listWaterLevel.value.filter(item => item.id_lokasi == form.id_lokasi);
+
+    // SORTING JARAK (Jika User sudah ambil GPS)
+    if (form.lat_aktual && form.long_aktual && filtered.length > 0) {
+        return filtered.map(item => {
+            // Parsing koordinat dari JSON DB (karena string "1.23374624")
+            const latDb = parseFloat(item.latitude);
+            const longDb = parseFloat(item.longitude);
+
+            const dist = getDistanceInMeters(
+                parseFloat(form.lat_aktual),
+                parseFloat(form.long_aktual),
+                latDb,
+                longDb
+            );
+            
+            return {
+                ...item,
+                _distance: dist !== null ? dist : 99999999,
+                _distanceText: dist !== null ? `(${Math.round(dist)}m)` : ''
+            };
+        }).sort((a, b) => a._distance - b._distance); // Sort Terdekat (ASC)
+    }
+
+    // Default Sorting: Berdasarkan Nama 'no_wl' (WL 01, WL 02, dst)
+    return filtered.sort((a, b) => (a.no_wl || '').localeCompare(b.no_wl || ''));
+})
+
+// ==========================================
+
+// --- Logic Skoring ---
 const getOptions = (param) => props.skoringData.filter(i => i.kategori_parameter === param && i.label_kondisi !== null)
 
 const calculateRangeScore = (paramName, value) => {
-  if (value === null || value === undefined || value === '') return 0
+  if (value === null || value === '' || isNaN(value)) return 0
+  const numValue = parseFloat(value)
   const rules = props.skoringData.filter(i => i.kategori_parameter === paramName)
   for (const rule of rules) {
-    const min = rule.min_value ? parseFloat(rule.min_value) : -Infinity
-    const max = rule.max_value ? parseFloat(rule.max_value) : Infinity
-    if (value >= min && value <= max) return rule.skor
+    const min = rule.min_value !== null ? parseFloat(rule.min_value) : -Infinity
+    const max = rule.max_value !== null ? parseFloat(rule.max_value) : Infinity
+    if (numValue >= min && numValue <= max) return rule.skor
   }
   return 0
 }
@@ -295,58 +336,88 @@ const averageScore = computed(() => {
   return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : "0.00"
 })
 
-// --- FILE HANDLERS ---
+// --- GPS Handler ---
+const getGeoLocation = () => {
+  if (!navigator.geolocation) return Swal.fire('Error', 'GPS tidak didukung', 'error')
+
+  Swal.fire({
+    title: 'Mencari Koordinat...',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  })
+
+  navigator.geolocation.getCurrentPosition(pos => {
+    form.lat_aktual = pos.coords.latitude
+    form.long_aktual = pos.coords.longitude
+    Swal.close()
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Lokasi didapat & Water Level diurutkan!', timer: 2000, showConfirmButton: false })
+  }, err => {
+    Swal.close()
+    Swal.fire('Error GPS', 'Gagal mengambil lokasi. Pastikan izin GPS aktif.', 'error')
+  }, { enableHighAccuracy: true })
+}
+
+// --- File Handler ---
 const handleFileUpload = (e) => {
   const file = e.target.files[0]
   if (!file) return
   if (file.size > 5 * 1024 * 1024) return Swal.fire('Error', 'Ukuran foto maksimal 5MB', 'error')
-  photoFile.value = file
-  previewUrl.value = URL.createObjectURL(file)
+  photoFile.value = file; previewUrl.value = URL.createObjectURL(file)
 }
-const clearImage = () => { photoFile.value = null; previewUrl.value = null }
+const clearImage = () => { photoFile.value = null; if (previewUrl.value) URL.revokeObjectURL(previewUrl.value); previewUrl.value = null; if (fileInput.value) fileInput.value.value = '' }
 
-// --- SAVE DATA ---
+// --- Submit Data ---
 const saveData = async () => {
-  if (!form.id_lokasi) return Swal.fire('Error', 'Pilih lokasi terlebih dahulu', 'error')
-  if (!photoFile.value) return Swal.fire('Error', 'Foto wajib diunggah', 'error')
+  if (!form.id_lokasi) return Swal.fire('Warning', 'Pilih Lokasi', 'warning')
+  if (!form.no_water_level) return Swal.fire('Warning', 'Pilih Water Level', 'warning')
+  if (!photoFile.value) return Swal.fire('Warning', 'Foto wajib diunggah', 'warning')
 
   isLoading.value = true
   const fd = new FormData()
 
-  // Masukkan data form
-  Object.keys(form).forEach(k => fd.append(k, form[k] ?? ''))
-
-  // Masukkan data skor
+  Object.keys(form).forEach(k => fd.append(k, form[k] !== null ? form[k] : ''))
   fd.append('skor_ketinggian', scores.value.ketinggian)
   fd.append('skor_jarak', scores.value.jarak)
   fd.append('skor_aliran', scores.value.aliran)
   fd.append('skor_risiko', scores.value.risiko)
   fd.append('skor_drainase', scores.value.drainase)
   fd.append('rata_rata_skor', averageScore.value)
-  fd.append('foto_path', photoFile.value)
+  if (photoFile.value) fd.append('foto_path', photoFile.value)
 
   try {
     await useApi('water-level', { method: 'POST', body: fd })
-    await Swal.fire('Berhasil', 'Data berhasil disimpan', 'success')
+    await Swal.fire('Berhasil', 'Data tersimpan', 'success')
     location.reload()
   } catch (e) {
-    Swal.fire('Error', 'Gagal menyimpan data ke server', 'error')
+    Swal.fire('Error', 'Gagal menyimpan', 'error')
   } finally {
     isLoading.value = false
   }
 }
 
-// Master Data Logic
+// --- Master Data ---
 const uniqueAfdelings = computed(() => [...new Set(listLokasi.value.map(i => i.afdeling))].sort())
 const filteredBloks = computed(() => listLokasi.value.filter(i => i.afdeling === selectedAfdeling.value).map(i => i.blok).sort())
+
 const resetBlok = () => { selectedBlok.value = ''; form.id_lokasi = '' }
 
 watch([selectedAfdeling, selectedBlok], ([a, b]) => {
   form.id_lokasi = (a && b) ? (listLokasi.value.find(l => l.afdeling === a && l.blok === b)?.id || '') : ''
+  form.no_water_level = '' // Reset WL jika ganti lokasi
 })
 
 onMounted(async () => {
-  const [kar, lok] = await Promise.all([useApi('list/karyawan'), useApi('list/lokasi')])
-  listKaryawan.value = kar; listLokasi.value = lok
+  try {
+    const [kar, lok, wl] = await Promise.all([
+      useApi('list/karyawan'), 
+      useApi('list/lokasi'),
+      useApi('list/water-level-master') 
+    ])
+    listKaryawan.value = kar || []
+    listLokasi.value = lok || []
+    listWaterLevel.value = wl || []
+  } catch (error) {
+    console.error("Gagal load data master", error)
+  }
 })
 </script>
