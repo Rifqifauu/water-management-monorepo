@@ -55,13 +55,11 @@ class _LoginPageState extends State<LoginPage> {
   void _handleLogin() async {
     setState(() => _isLoading = true);
 
-    // Simulasi loading
     await Future.delayed(const Duration(milliseconds: 800));
 
     if (_usernameController.text == 'admin' &&
         _passwordController.text == 'admin123') {
       if (mounted) {
-        // Navigasi ke Home (Pastikan class HomePage ada)
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomePage()),

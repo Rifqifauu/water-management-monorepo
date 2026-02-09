@@ -96,7 +96,6 @@ class _FormQueuePageState extends State<FormQueuePage> with SingleTickerProvider
           }
           _syncedItems.addAll(newItems);
           _page++; // Naikkan halaman untuk fetch berikutnya
-          
           _isLoadingSynced = false;
           _isLoadingMore = false;
         });

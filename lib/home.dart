@@ -6,20 +6,15 @@ import '../models/monitoring_model.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
-
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  // --- STATE VARIABLES ---
   int _selectedIndex = 0;
   final MasterDataService _masterService = MasterDataService();
-
   bool _isLoading = false;
   bool _hasMasterData = false;
-
-  // Data Lists
   List<KaryawanModel> _listKaryawan = [];
   List<LokasiModel> _listLokasi = [];
   List<SkoringConfig> _listSkoring = [];
@@ -31,18 +26,14 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _checkDataAvailability();
   }
-
-  // --- LOGIC METHODS ---
-
 Future<void> _checkDataAvailability() async {
   bool exists = await _masterService.hasData();
   
   if (!exists) {
     debugPrint("🌱 [HOME] Data kosong, mencoba ambil dari snapshot lokal...");
-    await _masterService.forceSeed(); // Panggil fungsi baru tadi
-    exists = await _masterService.hasData(); // Cek lagi
+    await _masterService.forceSeed();
+    exists = await _masterService.hasData();
   }
-
   if (mounted) {
     setState(() => _hasMasterData = exists);
     if (exists) {
@@ -93,7 +84,6 @@ Future<void> _checkDataAvailability() async {
       }
     }
   }
-
   void _onItemTapped(int index) {
     if (index == 1 && !_hasMasterData) {
       _showSyncDialog();
@@ -141,9 +131,6 @@ Future<void> _checkDataAvailability() async {
       ),
     );
   }
-
-  // --- MAIN BUILD ---
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -156,7 +143,6 @@ Future<void> _checkDataAvailability() async {
             : (_selectedIndex == 1 ? "Input Observasi" : "Antrean Data"),
         isLoading: _isLoading,
       ),
-
       body: IndexedStack(
         index: _selectedIndex,
         children: [
@@ -171,7 +157,6 @@ Future<void> _checkDataAvailability() async {
           const FormQueuePage()
         ],
       ),
-
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -195,9 +180,6 @@ Future<void> _checkDataAvailability() async {
       ),
     );
   }
-
-  // --- DASHBOARD CONTENT ---
-
   Widget _buildDashboardContent() {
     return RefreshIndicator(
       onRefresh: _checkDataAvailability,
@@ -208,10 +190,8 @@ Future<void> _checkDataAvailability() async {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text("Selamat Datang di", style: TextStyle(fontSize: 14, color: Colors.grey)),
-            const Text("Palm Water OS", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1565C0))),
-            
+            const Text("Palm Water OS", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1565C0))), 
             const SizedBox(height: 20),
-
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -270,20 +250,17 @@ Future<void> _checkDataAvailability() async {
                 ],
               ),
             ),
-
             const SizedBox(height: 30),
-
             if (_hasMasterData) ...[
               const Text(" Data Master", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
               const SizedBox(height: 5),
-              
               GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: 2,
-                crossAxisSpacing: 10, // Jarak dikurangi agar compact
-                mainAxisSpacing: 10,  // Jarak dikurangi agar compact
-                childAspectRatio: 2.2, // Rasio dilebarkan (1.6) agar kotak lebih pendek/ceper
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10, 
+                childAspectRatio: 2.2, 
                 children: [
                   _statCard("Karyawan", _listKaryawan.length.toString(), Icons.people_alt_rounded, Colors.blue),
                   _statCard("Lokasi", _listLokasi.length.toString(), Icons.place_rounded, Colors.orange),
@@ -297,15 +274,12 @@ Future<void> _checkDataAvailability() async {
       ),
     );
   }
-
-  // --- WIDGET STAT CARD VERSI KECIL (COMPACT) ---
   Widget _statCard(String label, String value, IconData icon, MaterialColor color) {
     return Container(
-      // Padding dikurangi dari 15 ke 10
       padding: const EdgeInsets.all(10), 
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12), // Radius dikurangi sedikit
+          borderRadius: BorderRadius.circular(12), 
           boxShadow: [
             BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))
           ]),
@@ -340,18 +314,12 @@ Future<void> _checkDataAvailability() async {
     );
   }
 }
-
-// --- CUSTOM WAVY APPBAR CLASS ---
-
 class CustomWavyAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool isLoading;
-
   const CustomWavyAppBar({super.key, required this.title, this.isLoading = false});
-
   @override
   Size get preferredSize => const Size.fromHeight(110); 
-
   @override
   Widget build(BuildContext context) {
     return ClipPath(
@@ -389,7 +357,6 @@ class CustomWavyAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 }
-
 class AppBarWaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
@@ -399,15 +366,12 @@ class AppBarWaveClipper extends CustomClipper<Path> {
     var firstEndPoint = Offset(size.width / 2, size.height - 30);
     var secondControlPoint = Offset(size.width - (size.width / 4), size.height - 60);
     var secondEndPoint = Offset(size.width, size.height - 20);
-    
     path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy, firstEndPoint.dx, firstEndPoint.dy);
     path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy, secondEndPoint.dx, secondEndPoint.dy);
-    
     path.lineTo(size.width, 0);
     path.close();
     return path;
   }
-  
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

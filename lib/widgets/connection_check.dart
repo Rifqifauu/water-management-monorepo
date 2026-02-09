@@ -18,7 +18,6 @@ class _ConnectionCheckState extends State<ConnectionCheck> {
   void initState() {
     super.initState();
     _checkInitial();
-    // Gunakan instans Connectivity() untuk menghindari error 'Lookup failed'
     _subscription = Connectivity().onConnectivityChanged.listen(_updateStatus);
   }
 
