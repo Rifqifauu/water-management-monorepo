@@ -1,0 +1,37 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+@import "tailwindcss";
+
+/* Kustomisasi UI Leaflet */
+@layer components {
+  .leaflet-container {
+    background: #0f172a !important;
+  }
+
+  .leaflet-popup-content-wrapper {
+    background-color: white !important;
+    color: #1e293b !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+    padding: 4px;
+  }
+
+  .leaflet-control-layers, .leaflet-control-zoom {
+    border: none !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    overflow: hidden;
+  }
+
+  /* Label Afdeling yang melayang di peta */
+  .custom-afdeling-label {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #f59e0b !important; /* Amber-500 */
+    font-weight: 900 !important;
+    font-size: 1.2rem !important;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5), -1px -1px 0px white;
+    pointer-events: none;
+  }
+}

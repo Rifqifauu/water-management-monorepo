@@ -1,0 +1,33 @@
+{
+"type": "FeatureCollection",
+"name": "Water_Level",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32650" } },
+"features": [
+{ "type": "Feature", "properties": { "OBJECTID": 1, "Afdeling": "C", "Blok": "D21", "Group_DAS": "Das 3", "Nomor": "WL 03" }, "geometry": { "type": "Point", "coordinates": [ 592939.360500000417233, 136380.829900000244379 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 2, "Afdeling": "A", "Blok": "C21", "Group_DAS": "Das 3", "Nomor": "WL 04" }, "geometry": { "type": "Point", "coordinates": [ 592157.215300000272691, 136574.081900000572205 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 3, "Afdeling": "A", "Blok": "C21", "Group_DAS": "Das 3", "Nomor": "WL 05" }, "geometry": { "type": "Point", "coordinates": [ 592172.137900000438094, 136562.22859999909997 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 4, "Afdeling": "A", "Blok": "C20", "Group_DAS": "Das 3", "Nomor": "WL 06" }, "geometry": { "type": "Point", "coordinates": [ 592124.525999999605119, 136792.112299999222159 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 5, "Afdeling": "A", "Blok": "C17", "Group_DAS": "Das 3", "Nomor": "WL 07" }, "geometry": { "type": "Point", "coordinates": [ 592145.375199999660254, 137567.4682 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 6, "Afdeling": "A", "Blok": "B15", "Group_DAS": "Das 2", "Nomor": "WL 01" }, "geometry": { "type": "Point", "coordinates": [ 590650.873300000093877, 138148.445900000631809 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 7, "Afdeling": "A", "Blok": "C14", "Group_DAS": "Das 2", "Nomor": "WL 02" }, "geometry": { "type": "Point", "coordinates": [ 591590.281600000336766, 138450.638100000098348 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 8, "Afdeling": "D", "Blok": "G19", "Group_DAS": "Das 4", "Nomor": "WL 08" }, "geometry": { "type": "Point", "coordinates": [ 596473.841500000096858, 136750.048000000417233 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 9, "Afdeling": "E", "Blok": "G26", "Group_DAS": "Das 4", "Nomor": "WL 09" }, "geometry": { "type": "Point", "coordinates": [ 595496.878100000321865, 135044.35329999960959 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 10, "Afdeling": "F", "Blok": "H24", "Group_DAS": "Das 4", "Nomor": "WL 10" }, "geometry": { "type": "Point", "coordinates": [ 597452.685600000433624, 135390.573599999770522 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 11, "Afdeling": "G", "Blok": "J15", "Group_DAS": "Das 4", "Nomor": "WL 11" }, "geometry": { "type": "Point", "coordinates": [ 599456.586500000208616, 137685.978700000792742 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 13, "Afdeling": "G", "Blok": "J19", "Group_DAS": "Das 4", "Nomor": "WL 12" }, "geometry": { "type": "Point", "coordinates": [ 598806.572300000116229, 136579.871500000357628 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 14, "Afdeling": "H", "Blok": "J09", "Group_DAS": "Das 4", "Nomor": "WL 13" }, "geometry": { "type": "Point", "coordinates": [ 599040.629599999636412, 139540.813200000673532 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 15, "Afdeling": "I", "Blok": "J06", "Group_DAS": "Das 4", "Nomor": "WL 14" }, "geometry": { "type": "Point", "coordinates": [ 599583.848500000312924, 140739.738700000569224 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 16, "Afdeling": "K", "Blok": "N03", "Group_DAS": "Das 4", "Nomor": "WL 15" }, "geometry": { "type": "Point", "coordinates": [ 602319.817099999636412, 140904.161499999463558 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 17, "Afdeling": "J", "Blok": "N05", "Group_DAS": "Das 4", "Nomor": "WL 16" }, "geometry": { "type": "Point", "coordinates": [ 601990.026600000448525, 140213.925000000745058 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 18, "Afdeling": "J", "Blok": "M06", "Group_DAS": "Das 4", "Nomor": "WL 17" }, "geometry": { "type": "Point", "coordinates": [ 601833.578099999576807, 139635.207399999722838 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 19, "Afdeling": "J", "Blok": "L11", "Group_DAS": "Das 4", "Nomor": "WL 18" }, "geometry": { "type": "Point", "coordinates": [ 600688.02170000039041, 138799.141799999400973 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 20, "Afdeling": "C", "Blok": "D21", "Group_DAS": "Das 3", "Nomor": "WL 19" }, "geometry": { "type": "Point", "coordinates": [ 592594.567800000309944, 136352.330800000578165 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 21, "Afdeling": "C", "Blok": "D21", "Group_DAS": "Das 3", "Nomor": "WL 20" }, "geometry": { "type": "Point", "coordinates": [ 592589.276200000196695, 136363.244899999350309 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 22, "Afdeling": "F", "Blok": "H27", "Group_DAS": "Das 4", "Nomor": "WL 21" }, "geometry": { "type": "Point", "coordinates": [ 596932.798600000329316, 134416.950200000777841 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 23, "Afdeling": "B", "Blok": "E15", "Group_DAS": "Das 3", "Nomor": "WL 22" }, "geometry": { "type": "Point", "coordinates": [ 594505.420300000347197, 137842.524000000208616 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 24, "Afdeling": "PLASMA TUNAS HARAPAN JAYA", "Blok": "G09", "Group_DAS": "Das 3", "Nomor": "WL 23" }, "geometry": { "type": "Point", "coordinates": [ 596001.102300000376999, 139485.669199999421835 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 25, "Afdeling": "A", "Blok": "C09", "Group_DAS": "Das 2", "Nomor": "WL 24" }, "geometry": { "type": "Point", "coordinates": [ 592530.370500000193715, 139875.295399999246001 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 26, "Afdeling": "C", "Blok": "F18", "Group_DAS": "Das 3", "Nomor": "WL 25" }, "geometry": { "type": "Point", "coordinates": [ 595526.266499999910593, 136999.414599999785423 ] } },
+{ "type": "Feature", "properties": { "OBJECTID": 27, "Afdeling": "F", "Blok": "G22", "Group_DAS": "Das 4", "Nomor": "WL 26" }, "geometry": { "type": "Point", "coordinates": [ 595534.653699999675155, 135993.941600000485778 ] } }
+]
+}
