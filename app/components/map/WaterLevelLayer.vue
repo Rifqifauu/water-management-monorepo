@@ -78,7 +78,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import { LLayerGroup, LMarker, LPopup, LTooltip } from '@vue-leaflet/vue-leaflet'
 import L from 'leaflet' 
 import proj4 from 'proj4'
@@ -95,9 +95,10 @@ const props = defineProps({
 
 const waterStatusMap = ref({}) 
 const isLoading = ref(false)
+const isUnmounted = ref(false) // GUARD 1: State Component Hidup/Mati
 let pollingInterval = null
 
-// Key re-render berdasarkan isolasi dan periode
+// Key re-render
 const filterKey = computed(() => {
   return `${props.selectedMonth}-${props.selectedYear}-${props.selectedBlock || 'all'}`
 })
@@ -107,12 +108,17 @@ const getMarkerKey = (item, index) => {
 }
 
 const fetchWaterStatus = async () => {
+  if (isUnmounted.value) return; // GUARD 2: Jangan fetch jika unmounted
+
   try {
     isLoading.value = true
     const m = props.selectedMonth || ''
     const y = props.selectedYear || ''
     
     const response = await fetch(`https://api.palmwateros-tap.com/api/gis/cek-water-level?month=${m}&year=${y}`)
+    
+    if (isUnmounted.value) return; // GUARD 3: Cek lagi setelah await
+
     if (!response.ok) throw new Error(`API Error: ${response.status}`)
     const result = await response.json()
     const items = result.data || [] 
@@ -130,11 +136,17 @@ const fetchWaterStatus = async () => {
             }
         })
     }
-    waterStatusMap.value = mapping
+
+    // GUARD 4: Tunggu DOM update, baru assign data
+    await nextTick()
+    if (!isUnmounted.value) {
+        waterStatusMap.value = mapping
+    }
+
   } catch (e) {
-    console.error("Gagal mengambil data water level:", e)
+    if (!isUnmounted.value) console.error("Gagal mengambil data water level:", e)
   } finally {
-    isLoading.value = false
+    if (!isUnmounted.value) isLoading.value = false
   }
 }
 
@@ -147,6 +159,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+    isUnmounted.value = true // Aktifkan rem darurat
     if (pollingInterval) clearInterval(pollingInterval)
 })
 
@@ -158,7 +171,6 @@ const formatDateIndo = (dateStr) => {
         day: '2-digit', month: 'short', year: 'numeric'
     }).format(date)
 }
-
 
 const createIcon = (status) => {
   return L.divIcon({
@@ -188,22 +200,22 @@ const finalFeatures = computed(() => {
     const featureBlock = (f.properties.Blok || '').toString().trim().toUpperCase()
     const featureAfd = (f.properties.Afdeling || '').toString().trim().toUpperCase()
 
-    // Jika isolasi blok aktif
+    // Jika isolasi blok aktif (PRIORITAS UTAMA)
     if (activeBlock) {
       return featureBlock === activeBlock
     }
 
-    // Default filter afdeling
+    // Default filter afdeling (Hanya jika tidak isolasi blok)
     return isAllAfd || cleanFilterAfd.includes(featureAfd)
   })
 
-  // 2. MAPPING: Gabungkan data GeoJSON dengan data API (Jika tidak ada API, tetap tampilkan)
+  // 2. MAPPING: Gabungkan data GeoJSON dengan data API
   return filteredGeo.map(f => {
     const propsRaw = f.properties
     const rawCoords = f.geometry.coordinates
     const nomorKey = String(propsRaw.Nomor).trim() 
     
-    // Lookup ke hasil API
+    // Lookup ke hasil API (Default: Tidak Ada Laporan)
     const apiData = waterStatusMap.value[nomorKey] || { 
       status: 'Tidak Ada Laporan', 
       tanggal: null, 
@@ -211,6 +223,7 @@ const finalFeatures = computed(() => {
     }
 
     let finalLatLng = [0, 0]
+    // Proj4 conversion
     if (rawCoords[0] > 180 || rawCoords[1] > 180) {
        const r = proj4('EPSG:32650', 'EPSG:4326', [parseFloat(rawCoords[0]), parseFloat(rawCoords[1])])
        finalLatLng = [r[1], r[0]] 
@@ -226,7 +239,7 @@ const finalFeatures = computed(() => {
       blok: propsRaw.Blok || '-',
       latLng: finalLatLng,
       status: apiData.status,
-      tanggal_raw: apiData.tanggal, // Simpan untuk pengecekan styling
+      tanggal_raw: apiData.tanggal, 
       tanggal: formatDateIndo(apiData.tanggal),
       foto_path: apiData.foto_path
     }

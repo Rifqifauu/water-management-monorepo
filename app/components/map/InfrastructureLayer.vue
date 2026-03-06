@@ -27,6 +27,9 @@
                 <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                   Skor: <span class="text-slate-700 font-mono font-bold">{{ getCurrentData(feature).skor }}</span>
                 </span>
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                  Tindakan: <span class="text-slate-700">{{ getCurrentData(feature).tindakan }}</span>
+                </span>
               </div>
             </div>
             
@@ -38,14 +41,35 @@
             </div>
           </div>
           
-          <div v-if="getCurrentData(feature).foto_path" class="mb-3 rounded-lg overflow-hidden border border-slate-200 shadow-sm relative bg-slate-100">
-             <img 
-               :src="`https://api.palmwateros-tap.com/storage/${getCurrentData(feature).foto_path}`"
-               alt="Foto Kondisi" 
-               class="w-full h-36 object-cover"
-               @error="$event.target.style.display='none'"
-             />
-          </div>
+  <div v-if="getCurrentData(feature).foto_path || getCurrentData(feature).foto_after" class="mb-3 overflow-hidden">
+  <div class="grid gap-2" :class="getCurrentData(feature).foto_after ? 'grid-cols-2' : 'grid-cols-1'">
+    
+    <div v-if="getCurrentData(feature).foto_path" class="relative group">
+      <div class="absolute top-0 left-0 bg-black/60 text-[8px] text-white px-1.5 py-0.5 rounded-br-md z-10 font-bold uppercase tracking-tighter">Sebelum</div>
+      <div class="rounded-lg overflow-hidden border border-slate-200 shadow-sm bg-slate-100 h-36">
+        <img 
+          :src="`https://api.palmwateros-tap.com/storage/${getCurrentData(feature).foto_path}`"
+          alt="Foto Sebelum" 
+          class="w-full h-full object-cover"
+          @error="$event.target.closest('.relative').style.display='none'"
+        />
+      </div>
+    </div>
+
+    <div v-if="getCurrentData(feature).foto_after" class="relative group">
+      <div class="absolute top-0 left-0 bg-green-600 text-[8px] text-white px-1.5 py-0.5 rounded-br-md z-10 font-bold uppercase tracking-tighter">Sesudah</div>
+      <div class="rounded-lg overflow-hidden border border-green-200 shadow-sm bg-slate-100 h-36">
+        <img 
+          :src="`https://api.palmwateros-tap.com/storage/${getCurrentData(feature).foto_after}`"
+          alt="Foto Sesudah" 
+          class="w-full h-full object-cover"
+          @error="$event.target.closest('.relative').style.display='none'"
+        />
+      </div>
+    </div>
+
+  </div>
+</div>
 
           <div class="grid grid-cols-2 gap-2">
             <div class="bg-blue-50 border border-blue-100 p-2.5 rounded-lg mb-3 shadow-sm">
@@ -72,7 +96,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onUnmounted, nextTick } from 'vue'
 import { LLayerGroup, LMarker, LPopup, LTooltip } from '@vue-leaflet/vue-leaflet'
 import L from 'leaflet' 
 import proj4 from 'proj4'
@@ -82,30 +106,26 @@ const props = defineProps({
   filterAfd: { type: Array, default: () => ['All'] },
   activeCategories: { type: Array, default: () => [] },
   selectedMonth: { type: [Number, Object], default: null },
-  selectedYear: { type: [Number, Object], default: null }
+  selectedYear: { type: [Number, Object], default: null },
+  selectedBlock: { type: String, default: null } 
 })
 
 const infraStatusMap = ref({}) 
 const isLoading = ref(false)
+const isUnmounted = ref(false) 
 
 proj4.defs('EPSG:32650', '+proj=utm +zone=50 +datum=WGS84 +units=m +no_defs')
 
-/**
- * Mendapatkan data terbaru untuk marker tertentu dari hasil mapping API
- */
 const getCurrentData = (feature) => {
   const rawId = feature.properties.OBJECTID
-  if (!rawId) return { status: 'Unknown', tanggal: '-', foto_path: null, skor: '0.00' }
-  
+  if (!rawId) return { status: 'Unknown', tanggal: '-', foto_path: null, skor: '0.00', tindakan: '-' }
   const id = String(rawId).trim()
   const apiData = infraStatusMap.value[id]
-  
   if (apiData) return apiData
-  
-  // Jika tidak ada data di periode terpilih
   return { 
     status: props.selectedMonth ? 'Tidak Ada Laporan' : 'Belum Ada Data', 
     tanggal: '-', 
+    tindakan: '-',
     foto_path: null, 
     skor: '0.00' 
   }
@@ -118,12 +138,16 @@ const getMarkerKey = (feature) => {
 }
 
 const fetchInfraStatus = async () => {
+  if (isUnmounted.value) return; 
   isLoading.value = true
+  
   try {
     const m = props.selectedMonth || ''
     const y = props.selectedYear || ''
     
     const response = await fetch(`https://api.palmwateros-tap.com/api/gis/cek-infra?month=${m}&year=${y}`) 
+    if (isUnmounted.value) return; 
+
     const result = await response.json()
     const mapping = {}
     const items = result.data || [] 
@@ -131,22 +155,27 @@ const fetchInfraStatus = async () => {
     if (Array.isArray(items)) {
       items.forEach(item => {
         if (item.id_objek) {
-          // NORMALISASI: String + Trim agar matching ID akurat
           const key = String(item.id_objek).trim()
           mapping[key] = { 
             status: item.status, 
             tanggal: item.tanggal,
             skor: item.skor,
-            foto_path: item.foto_path
+            foto_path: item.foto_path,
+            foto_after: item.foto_after,
+            tindakan: item.tindakan 
           }
         }
       })
     }
-    infraStatusMap.value = mapping
+    
+    await nextTick();
+    if (!isUnmounted.value) {
+        infraStatusMap.value = mapping
+    }
   } catch (e) {
-    console.error("Gagal fetch infra status:", e)
+    if(!isUnmounted.value) console.error("Gagal fetch infra status:", e)
   } finally {
-    isLoading.value = false
+    if(!isUnmounted.value) isLoading.value = false
   }
 }
 
@@ -156,23 +185,17 @@ watch(
   { immediate: true }
 )
 
+// --- HELPERS ---
 const formatDate = (dateString) => {
   if (!dateString || dateString === '-' || dateString === null) return '-'
   const parts = dateString.split('-')
-  
   if (parts.length === 3) {
     const day = parseInt(parts[0], 10)
     const month = parseInt(parts[1], 10) - 1 
     const year = parseInt(parts[2], 10)
-    
     const date = new Date(year, month, day)
-    
     if (!isNaN(date.getTime())) {
-      return new Intl.DateTimeFormat('id-ID', { 
-        day: 'numeric', 
-        month: 'short', 
-        year: 'numeric' 
-      }).format(date)
+      return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
     }
   }
   return dateString
@@ -183,7 +206,7 @@ const getStatusColor = (kondisi) => {
   if (status.includes('baik') || status.includes('1')) return '#22c55e'
   if (status.includes('perawatan') || status.includes('2')) return '#f97316'
   if (status.includes('rusak') || status.includes('3')) return '#ef4444'
-  return '#94a3b8' 
+  return '#94a3b8' // Abu-abu untuk 'Tidak Ada Laporan'
 }
 
 const createMarkerIcon = (feature) => {
@@ -197,28 +220,41 @@ const createMarkerIcon = (feature) => {
   return L.divIcon({ className: '', html: html, iconSize: [12, 12], iconAnchor: [6, 6], popupAnchor: [0, -6] })
 }
 
-const filterKey = computed(() => props.filterAfd.join('-') + '-' + props.activeCategories.join('-'))
+const filterKey = computed(() => {
+    return `${props.filterAfd.join('-')}-${props.activeCategories.join('-')}-${props.selectedBlock || 'all'}`
+})
 
+// --- FILTERING LOGIC (SUDAH DIPERBAIKI) ---
 const featuresToDisplay = computed(() => {
   if (!props.geoJson || !props.geoJson.features) return []
+  
   const cleanFilterAfd = props.filterAfd.map(a => a.toString().trim().toUpperCase())
   const isAllAfd = cleanFilterAfd.includes('ALL')
+  const targetBlock = props.selectedBlock ? props.selectedBlock.toString().trim().toUpperCase() : null
 
   return props.geoJson.features
     .filter(f => {
-      const dataAfd = (f.properties.AFD_NAME || '').toString().trim().toUpperCase()
-      const matchAfd = isAllAfd || cleanFilterAfd.includes(dataAfd)
-      const matchCat = props.activeCategories.includes(f.properties.KATEGORY)
-      
-      if (!matchAfd || !matchCat) return false
-
-      // Jika filter periode aktif, hanya tampilkan yang ada di data API periode tersebut
-      if (props.selectedMonth && props.selectedYear) {
-        const id = String(f.properties.OBJECTID).trim()
-        return infraStatusMap.value.hasOwnProperty(id)
+      // 1. FILTER ISOLASI BLOK
+      if (targetBlock) {
+          const infraBlock = (f.properties.BLOCK_NAME || '').toString().trim().toUpperCase()
+          if (infraBlock !== targetBlock) return false
       }
 
-      return true
+      // 2. FILTER KATEGORI (Wajib)
+      const matchCat = props.activeCategories.includes(f.properties.KATEGORY)
+      if (!matchCat) return false
+
+      // 3. FILTER AFDELING
+      if (!targetBlock) {
+          const dataAfd = (f.properties.AFD_NAME || '').toString().trim().toUpperCase()
+          const matchAfd = isAllAfd || cleanFilterAfd.includes(dataAfd)
+          if (!matchAfd) return false
+      }
+
+      // 4. FILTER API HAPUS! 
+      // Kita hapus bagian pemeriksaan `infraStatusMap` agar data yang tidak ada laporan tetap muncul.
+      
+      return true // Loloskan semua yang memenuhi filter kategori/blok/afd
     })
     .map(f => {
       const feature = { ...f, geometry: { ...f.geometry, coordinates: [...f.geometry.coordinates] } }
@@ -230,6 +266,8 @@ const featuresToDisplay = computed(() => {
       return feature
     })
 })
+
+onUnmounted(() => { isUnmounted.value = true })
 </script>
 
 <style>
