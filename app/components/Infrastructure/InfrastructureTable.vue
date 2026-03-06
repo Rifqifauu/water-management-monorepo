@@ -43,7 +43,7 @@
 
             <div class="w-full sm:w-48">
                 <select 
-                  v-model="filters.kategori" 
+                  v-model="filters.category" 
                   @change="handleFilterChange"
                   class="w-full py-2.5 px-3 bg-white border border-gray-300 rounded-lg text-sm shadow-sm text-gray-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
                 >
@@ -246,7 +246,7 @@ const responseData = ref({
 
 const filters = ref({ 
     search: '', 
-    kategori: '' 
+    category: '' 
 })
 
 const selectedIds = ref([])
@@ -268,28 +268,22 @@ const toggleSelectAll = () => {
     }
 }
 
-// Fetch Data (Logic Perbaikan agar deteksi Pagination benar)
 async function fetchData(page = 1) {
     isLoading.value = true
     try {
         const params = new URLSearchParams({
             page: page,
             search: filters.value.search,
-            category: filters.value.kategori // Pastikan key di API adalah 'category'
+            category: filters.value.category
         })
         
         const response = await useApi(`infrastructure-master?${params.toString()}`)
-        
-        // --- LOGIKA PENGECEKAN RESPON ---
-        // Jika response langsung berisi pagination keys
         if (response.current_page && response.data) {
              responseData.value = response
         } 
-        // Jika response dibungkus wrapper data: { data: { current_page... } }
         else if (response.data && response.data.current_page) {
              responseData.value = response.data
         } 
-        // Fallback
         else {
              responseData.value = response
         }
@@ -302,7 +296,6 @@ async function fetchData(page = 1) {
     }
 }
 
-// Debounce Search
 let searchTimeout = null
 const handleSearch = () => {
   if (searchTimeout) clearTimeout(searchTimeout)

@@ -2,7 +2,6 @@
   <div class="form-card">
     <form @submit.prevent="handleSubmit">
       <div class="form-grid">  
-        
         <div class="form-group">
           <label>No WL <span class="text-red">*</span></label>
           <input 
@@ -26,9 +25,31 @@
           />
           <span v-if="errors.id_lokasi" class="error-msg">{{ errors.id_lokasi[0] }}</span>
         </div>
-
+        <div class="form-group">
+          <label>Latitude</label>
+          <input v-model="form.latitude" type="text" placeholder="-6.123456" />
+        </div>
+        <div class="form-group">
+          <label>Longitude</label>
+          <input v-model="form.longitude" type="text" placeholder="106.123456" />
+        </div>
       </div>
-
+          <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            <div class="bg-blue-600 p-1.5 rounded-full text-white">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <span class="text-sm font-bold text-gray-700">Gunakan GPS Perangkat</span>
+          </div>
+          <button type="button" @click="getGeoLocation" class="text-xs bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+            Ambil Lokasi Saat Ini
+          </button>
+        </div>
+      </div>
       <div class="form-actions">
         <button type="button" class="btn-cancel" @click="$emit('close')">
           Batal
@@ -43,6 +64,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
+import Swal from 'sweetalert2'
 
 const props = defineProps({
   editId: {
@@ -59,7 +81,10 @@ const lokasiOptions = ref([])
 
 const defaultForm = {
   no_wl: '',
-  id_lokasi: ''
+  id_lokasi: '',
+  latitude:'',
+  longitude:''
+
 }
 
 const form = ref({ ...defaultForm })
@@ -80,6 +105,29 @@ const fetchLokasi = async () => {
     console.error("Gagal memuat list lokasi:", error)
   }
 }
+const getGeoLocation = () => {
+  if (!navigator.geolocation) return Swal.fire('Error', 'GPS tidak didukung oleh browser Anda', 'error')
+  
+  Swal.fire({ 
+    title: 'Mencari Koordinat...', 
+    allowOutsideClick: false, 
+    didOpen: () => Swal.showLoading() 
+  })
+  
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      form.value.latitude = pos.coords.latitude.toFixed(8)
+      form.value.longitude = pos.coords.longitude.toFixed(8)
+      Swal.close()
+      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Lokasi berhasil diambil!', timer: 2000, showConfirmButton: false })
+    }, 
+    (err) => {
+      Swal.close()
+      Swal.fire('Gagal Ambil Lokasi', 'Pastikan izin lokasi aktif: ' + err.message, 'error')
+    },
+    { enableHighAccuracy: true }
+  )
+}
 
 /**
  * Mengambil detail data saat mode Edit
@@ -94,7 +142,9 @@ const loadDetailData = async (id) => {
 
     form.value = {
       no_wl: data.no_wl || '',
-      id_lokasi: data.id_lokasi || '' 
+      id_lokasi: data.id_lokasi || '',
+      latitude: data.latitude || null,
+      longitude: data.longitude || null
     }
   } catch (error) {
     console.error("❌ ERROR SAAT LOAD DATA:", error)

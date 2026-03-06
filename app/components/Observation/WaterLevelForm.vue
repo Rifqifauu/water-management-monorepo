@@ -212,12 +212,10 @@ const props = defineProps({
 })
 
 const ScoreBadge = ({ skor }) => {
-  if (skor === undefined || skor === null) return null
-  const colors = skor === 3 ? 'bg-green-600 text-white' : skor === 2 ? 'bg-yellow-500 text-white' : 'bg-red-600 text-white'
+  if (!skor || skor === 0) return null
+  const colors = skor === 3 ? 'bg-green-100 text-green-700' : skor === 2 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
   return h('span', { class: `px-2 py-0.5 rounded text-[10px] font-black ${colors}` }, `SKOR: ${skor}`)
 }
-
-// --- Tailwind Classes ---
 const cls = {
   input: "w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all placeholder-gray-400",
   select: "w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 appearance-none disabled:bg-gray-200 disabled:text-gray-400",
