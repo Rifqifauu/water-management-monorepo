@@ -1,6 +1,29 @@
-# Water Management System Monorepo
-Proyek ini dikelola dalam struktur monorepo untuk memudahkan sinkronisasi antar layanan:
-/api: Backend API utama yang dibangun dengan Laravel 11.
-/dashboard: Panel admin dan visualisasi data menggunakan Nuxt.js.
-/gis-app: Sistem informasi geografis untuk pemetaan titik air menggunakan Nuxt.js.
-/mobile-app: Aplikasi monitoring untuk pengguna lapangan yang dibangun dengan Flutter.
+# Water Management System 🌊
+
+Sistem manajemen dan pemantauan sumber daya air terintegrasi. Proyek ini menggunakan arsitektur **Monorepo** untuk menyatukan seluruh ekosistem layanan dalam satu repositori tunggal.
+
+---
+
+## 🏗️ Arsitektur Sistem
+
+Proyek ini terbagi menjadi empat layanan utama yang saling terhubung:
+
+| Layanan | Folder | Teknologi | Deskripsi |
+| :--- | :--- | :--- | :--- |
+| **Backend API** | `/api` | ![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=flat-square&logo=laravel&logoColor=white) | Core engine, database management, dan RESTful API. |
+| **Admin Dashboard** | `/dashboard` | ![Nuxt](https://img.shields.io/badge/Nuxt.js-00DC82?style=flat-square&logo=nuxt.js&logoColor=white) | Panel monitoring data dan manajemen user. |
+| **GIS Application** | `/gis-app` | ![Nuxt](https://img.shields.io/badge/Nuxt.js-00DC82?style=flat-square&logo=nuxt.js&logoColor=white) | Visualisasi pemetaan titik air dan geospasial. |
+| **Mobile App** | `/mobile-app` | ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=flat-square&logo=flutter&logoColor=white) | Aplikasi monitoring lapangan untuk pengguna mobile. |
+
+---
+
+## 🚀 Panduan Memulai (Setup Lokal)
+
+Ikuti langkah-benar di bawah ini untuk menjalankan seluruh layanan di mesin lokal Anda.
+
+### 1. Prasyarat
+Pastikan Anda sudah menginstal:
+* PHP >= 8.2 & Composer
+* Node.js >= 18 & NPM
+* Flutter SDK
+* Database Engine MySQL
