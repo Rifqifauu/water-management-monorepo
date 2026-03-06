@@ -23,7 +23,7 @@ class WaterLevelForm extends StatefulWidget {
   final List<KaryawanModel> listKaryawan;
   final List<LokasiModel> listLokasi;
   final List<WaterLevelMaster> waterLevelMasterData;
-  
+
   // Opsional: Jika ada inisialisasi awal (misal dari draft)
   final WaterLevelMaster? initialWaterLevel;
 
@@ -61,7 +61,7 @@ class _WaterLevelFormState extends State<WaterLevelForm> {
   Map<String, dynamic> form = {
     'tanggal': DateFormat('yyyy-MM-dd').format(DateTime.now()),
     'no_water_level': '', // Hanya string untuk display/api
-    'id_objek': null,     // ID Water Level
+    'id_objek': null, // ID Water Level
     'tinggi_level_air': null,
     'kondisi_aliran': null,
     'jarak_ke_bibir': null,
@@ -79,63 +79,82 @@ class _WaterLevelFormState extends State<WaterLevelForm> {
     'risiko': 0,
     'kapasitas_drainase': 0,
   };
-List<WaterLevelMaster> get filteredWaterLevels {
+
+  Map<String, double> distanceMap = {};
+
+  List<WaterLevelMaster> get filteredWaterLevelMasters {
     List<WaterLevelMaster> data = List.from(widget.waterLevelMasterData);
 
     if (selectedLokasi != null) {
-      final selectedId = selectedLokasi!.id.toString().trim();
-      
       data = data.where((item) {
-        String itemId = item.id_lokasi?.toString().trim() ?? '';
-
-        if (itemId.isEmpty || itemId == 'null') {
-           // Pastikan model WaterLevelMaster Anda punya field 'lokasi'
-           // Jika tidak punya, hapus blok if ini.
-           try {
-             // Asumsi di model ada: final LokasiModel? lokasi;
-             itemId = (item as dynamic).lokasi?.id?.toString().trim() ?? '';
-           } catch (e) {
-             // Abaikan jika tidak ada
-           }
-        }
-
-        // Debugging: Lihat di console apa yang dibandingkan
-        // Hapus baris ini nanti jika sudah fix
-        print("Comparing Item: '$itemId' vs Selected: '$selectedId'");
-
-        return itemId == selectedId;
+        return item.id_lokasi.toString() == selectedLokasi!.id.toString();
       }).toList();
     }
 
-    if (form['lat_aktual'] != '' && form['long_aktual'] != '') {
+    if (form['lat_aktual'] != null &&
+        form['lat_aktual'].toString().isNotEmpty &&
+        form['long_aktual'] != null &&
+        form['long_aktual'].toString().isNotEmpty) {
       try {
-        double userLat = double.parse(form['lat_aktual']);
-        double userLong = double.parse(form['long_aktual']);
+        double userLat = double.parse(
+            form['lat_aktual'].toString().replaceAll(',', '.').trim());
+        double userLong = double.parse(
+            form['long_aktual'].toString().replaceAll(',', '.').trim());
+
+        debugPrint("\n=== 📍 MULAI KALKULASI & SORTING JARAK ===");
+        debugPrint("Koordinat User Aktual: Lat $userLat, Long $userLong");
+
+        distanceMap.clear();
+
+        for (var item in data) {
+          double dist = _calculateDistance(
+              userLat, userLong, item.latitude, item.longitude);
+
+          distanceMap[item.id.toString()] = dist;
+
+          String distanceText = dist == 999999999.0
+              ? 'Tidak valid/Kosong'
+              : '${dist.toStringAsFixed(2)} meter';
+
+          debugPrint(
+              "🚗 ID: ${item.id} | Lat: ${item.latitude}, Long: ${item.longitude} | Jarak: $distanceText");
+        }
 
         data.sort((a, b) {
-          double distA = _calculateDistance(userLat, userLong, a.latitude, a.longitude);
-          double distB = _calculateDistance(userLat, userLong, b.latitude, b.longitude);
+          double distA = distanceMap[a.id.toString()] ?? 999999999.0;
+          double distB = distanceMap[b.id.toString()] ?? 999999999.0;
           return distA.compareTo(distB);
         });
+
+        debugPrint("=== ✅ SORTING LOKASI SELESAI ===\n");
       } catch (e) {
-        debugPrint("Error sorting distance: $e");
+        debugPrint("❌ Error saat sorting distance: $e");
       }
     }
 
     return data;
   }
-  double _calculateDistance(double startLat, double startLng, String? endLatStr, String? endLngStr) {
-    if (endLatStr == null || endLngStr == null || endLatStr.isEmpty || endLngStr.isEmpty) {
-      return double.infinity; // Taruh paling bawah jika tidak ada koordinat
+
+  double _calculateDistance(
+      double startLat, double startLng, String? endLatStr, String? endLngStr) {
+    if (endLatStr == null ||
+        endLngStr == null ||
+        endLatStr.trim().isEmpty ||
+        endLngStr.trim().isEmpty) {
+      return 999999999.0;
     }
     try {
-      double endLat = double.parse(endLatStr);
-      double endLng = double.parse(endLngStr);
+      double endLat = double.parse(endLatStr.replaceAll(',', '.').trim());
+      double endLng = double.parse(endLngStr.replaceAll(',', '.').trim());
       return Geolocator.distanceBetween(startLat, startLng, endLat, endLng);
     } catch (e) {
-      return double.infinity;
+      // Tambahkan info titik koordinat mana yang bikin error
+      debugPrint(
+          "⚠️ Error parsing koordinat infrastruktur (Lat: $endLatStr, Long: $endLngStr): $e");
+      return 999999999.0;
     }
   }
+
   @override
   void initState() {
     super.initState();
@@ -151,9 +170,12 @@ List<WaterLevelMaster> get filteredWaterLevels {
     int getSkor(String parameter, dynamic value, {bool isNumeric = false}) {
       if (value == null || value.toString().isEmpty) return 0;
 
-      final criteriaList = widget.skoringData.where((s) =>
-          s.unit == 'Water Level' && s.parameter.trim().toLowerCase() == parameter.trim().toLowerCase()
-      ).toList();
+      final criteriaList = widget.skoringData
+          .where((s) =>
+              s.unit == 'Water Level' &&
+              s.parameter.trim().toLowerCase() ==
+                  parameter.trim().toLowerCase())
+          .toList();
 
       if (criteriaList.isEmpty) return 0;
 
@@ -162,7 +184,7 @@ List<WaterLevelMaster> get filteredWaterLevels {
           // Bersihkan input (ganti koma jadi titik)
           String cleanValue = value.toString().replaceAll(',', '.');
           double val = double.tryParse(cleanValue) ?? -9999;
-          
+
           // Cari range yang cocok
           for (var c in criteriaList) {
             double min = c.minValue ?? -999999;
@@ -173,7 +195,9 @@ List<WaterLevelMaster> get filteredWaterLevels {
         } else {
           // String Matching
           var match = criteriaList.firstWhere(
-            (c) => c.labelKondisi?.trim().toLowerCase() == value.toString().trim().toLowerCase(),
+            (c) =>
+                c.labelKondisi?.trim().toLowerCase() ==
+                value.toString().trim().toLowerCase(),
             orElse: () => SkoringConfig(unit: '', parameter: '', skor: 0),
           );
           return match.skor;
@@ -184,11 +208,15 @@ List<WaterLevelMaster> get filteredWaterLevels {
     }
 
     setState(() {
-      scores['tinggi_level_air'] = getSkor('Ketinggian Air', form['tinggi_level_air'], isNumeric: true);
-      scores['jarak_ke_bibir'] = getSkor('Jarak ke Bibir', form['jarak_ke_bibir'], isNumeric: true);
-      scores['kondisi_aliran'] = getSkor('Kondisi Aliran', form['kondisi_aliran']);
+      scores['tinggi_level_air'] =
+          getSkor('Ketinggian Air', form['tinggi_level_air'], isNumeric: true);
+      scores['jarak_ke_bibir'] =
+          getSkor('Jarak ke Bibir', form['jarak_ke_bibir'], isNumeric: true);
+      scores['kondisi_aliran'] =
+          getSkor('Kondisi Aliran', form['kondisi_aliran']);
       scores['risiko'] = getSkor('Risiko', form['risiko']);
-      scores['kapasitas_drainase'] = getSkor('Kapasitas Drainase', form['kapasitas_drainase']);
+      scores['kapasitas_drainase'] =
+          getSkor('Kapasitas Drainase', form['kapasitas_drainase']);
     });
   }
 
@@ -234,7 +262,8 @@ List<WaterLevelMaster> get filteredWaterLevels {
           form['lat_aktual'] = lastPos.latitude.toString();
           form['long_aktual'] = lastPos.longitude.toString();
         });
-        _showMessage("Sinyal lemah, menggunakan lokasi terakhir.", isError: false, color: Colors.orange);
+        _showMessage("Sinyal lemah, menggunakan lokasi terakhir.",
+            isError: false, color: Colors.orange);
       } else {
         _showMessage("Gagal mendapatkan lokasi GPS.", isError: true);
       }
@@ -252,7 +281,8 @@ List<WaterLevelMaster> get filteredWaterLevels {
       );
 
       if (f != null) {
-        setState(() => isBefore ? photoBefore = File(f.path) : photoAfter = File(f.path));
+        setState(() =>
+            isBefore ? photoBefore = File(f.path) : photoAfter = File(f.path));
       }
     } catch (e) {
       _showMessage("Gagal mengambil foto: $e", isError: true);
@@ -262,19 +292,26 @@ List<WaterLevelMaster> get filteredWaterLevels {
   void _showPickerOptions(bool isBefore) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt, color: Colors.blue),
               title: const Text('Ambil dari Kamera'),
-              onTap: () { Navigator.pop(context); _pickImage(isBefore, ImageSource.camera); },
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(isBefore, ImageSource.camera);
+              },
             ),
             ListTile(
               leading: const Icon(Icons.photo_library, color: Colors.green),
               title: const Text('Pilih dari Galeri'),
-              onTap: () { Navigator.pop(context); _pickImage(isBefore, ImageSource.gallery); },
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(isBefore, ImageSource.gallery);
+              },
             ),
           ],
         ),
@@ -285,7 +322,7 @@ List<WaterLevelMaster> get filteredWaterLevels {
   // --- LOGIC: SUBMIT ---
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     // Validasi Manual
     if (selectedLokasi == null) {
       _showMessage("Pilih Lokasi terlebih dahulu!", isError: true);
@@ -302,7 +339,6 @@ List<WaterLevelMaster> get filteredWaterLevels {
 
     setState(() => isSubmitting = true);
 
-    // Deklarasi di luar try agar bisa diakses catch/finally
     Map<String, dynamic> submissionData = {};
 
     try {
@@ -312,7 +348,7 @@ List<WaterLevelMaster> get filteredWaterLevels {
         'id_karyawan': selectedKaryawan?.id,
         'id_water_level': selectedWaterLevelMaster?.id, // ID Object
         'no_water_level': selectedWaterLevelMaster?.no_wl,
-        
+
         // Skor-skor
         'skor_ketinggian': scores['tinggi_level_air'],
         'skor_jarak': scores['jarak_ke_bibir'],
@@ -324,7 +360,8 @@ List<WaterLevelMaster> get filteredWaterLevels {
       };
 
       final connectivityResult = await Connectivity().checkConnectivity();
-      final bool isOnline = !connectivityResult.contains(ConnectivityResult.none);
+      final bool isOnline =
+          !connectivityResult.contains(ConnectivityResult.none);
 
       if (isOnline) {
         // KIRIM ONLINE
@@ -332,25 +369,22 @@ List<WaterLevelMaster> get filteredWaterLevels {
         _showMessage("Data Berhasil Terkirim Online!", isError: false);
         await _saveToHistory(submissionData);
       } else {
-        // SIMPAN OFFLINE
         await _saveToOfflineQueue(submissionData);
-        _showMessage("Offline: Data disimpan di antrean.", isError: false, color: Colors.orange);
+        _showMessage("Offline: Data disimpan di antrean.",
+            isError: false, color: Colors.orange);
       }
 
       _resetForm();
-
     } catch (e) {
       String errorMessage = "Terjadi Kesalahan";
       if (e is DioException) {
-        errorMessage = "Server Error: ${e.response?.data?['message'] ?? e.message}";
+        errorMessage =
+            "Server Error: ${e.response?.data?['message'] ?? e.message}";
       } else {
         errorMessage = e.toString();
       }
-      
+
       _showMessage(errorMessage, isError: true);
-      
-      // Opsional: Simpan ke offline jika gagal kirim (tergantung kebutuhan)
-      // await _saveToOfflineQueue(submissionData); 
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
@@ -378,7 +412,7 @@ List<WaterLevelMaster> get filteredWaterLevels {
     setState(() {
       photoBefore = null;
       photoAfter = null;
-      
+
       // Reset Field
       form['tinggi_level_air'] = null;
       form['jarak_ke_bibir'] = null;
@@ -386,9 +420,9 @@ List<WaterLevelMaster> get filteredWaterLevels {
       form['kapasitas_drainase'] = null;
       form['risiko'] = null;
       form['tindakan'] = null;
-      
+
       // Reset selected object? Tergantung flow user.
-      // selectedWaterLevelMaster = null; 
+      // selectedWaterLevelMaster = null;
       // form['no_water_level'] = '';
 
       scores.updateAll((key, value) => 0);
@@ -420,17 +454,26 @@ List<WaterLevelMaster> get filteredWaterLevels {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [Colors.blue.shade800, Colors.blue.shade500]),
+                  gradient: LinearGradient(
+                      colors: [Colors.blue.shade800, Colors.blue.shade500]),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
-                    BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))
+                    BoxShadow(
+                        color: Colors.blue.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4))
                   ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Rata-rata Skor", style: TextStyle(color: Colors.white, fontSize: 16)),
-                    Text(averageScore, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+                    const Text("Rata-rata Skor",
+                        style: TextStyle(color: Colors.white, fontSize: 16)),
+                    Text(averageScore,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -444,19 +487,21 @@ List<WaterLevelMaster> get filteredWaterLevels {
                 selectedKaryawan: selectedKaryawan,
                 selectedAfdeling: selectedAfdeling,
                 selectedLokasi: selectedLokasi,
-                onKaryawanChanged: (val) => setState(() => selectedKaryawan = val),
-                
+                onKaryawanChanged: (val) =>
+                    setState(() => selectedKaryawan = val),
+
                 // RESET SAAT AFDELING BERUBAH
                 onAfdelingChanged: (val) => setState(() {
                   selectedAfdeling = val;
                   selectedLokasi = null;
                   selectedWaterLevelMaster = null; // Reset item terpilih
                 }),
-                
+
                 // RESET SAAT LOKASI BERUBAH
                 onLokasiChanged: (val) => setState(() {
                   selectedLokasi = val;
-                  selectedWaterLevelMaster = null; // Reset item terpilih agar user memilih ulang dari list baru
+                  selectedWaterLevelMaster =
+                      null; // Reset item terpilih agar user memilih ulang dari list baru
                 }),
                 onTipeObjekChanged: (_) {},
               ),
@@ -467,10 +512,19 @@ List<WaterLevelMaster> get filteredWaterLevels {
               GpsCard(
                 lat: form['lat_aktual'],
                 long: form['long_aktual'],
-                onTap: isGettingGps ? null : _getGeoLocation, // Saat GPS update, list otomatis terurut ulang
                 isLoading: isGettingGps,
+                onTap: isGettingGps ? null : _getGeoLocation,
+                onLatChanged: (val) {
+                  setState(() {
+                    form['lat_aktual'] = val;
+                  });
+                },
+                onLongChanged: (val) {
+                  setState(() {
+                    form['long_aktual'] = val;
+                  });
+                },
               ),
-
               const SizedBox(height: 20),
 
               // 4. DETAIL FORM
@@ -478,11 +532,9 @@ List<WaterLevelMaster> get filteredWaterLevels {
                 form: form,
                 scores: scores,
                 skoringData: widget.skoringData,
-                
-                // PERUBAHAN DISINI: Gunakan 'filteredWaterLevels'
-                waterLevelMasterData: filteredWaterLevels,
-                
-                selectedWaterLevelMaster: selectedWaterLevelMaster,                 
+                waterLevelMasterData: filteredWaterLevelMasters,
+                distanceMap: distanceMap,
+                selectedWaterLevelMaster: selectedWaterLevelMaster,
                 onWaterLevelMasterChanged: (master) {
                   setState(() {
                     selectedWaterLevelMaster = master;
@@ -494,9 +546,7 @@ List<WaterLevelMaster> get filteredWaterLevels {
                   });
                   _calcScore();
                 },
-
                 onUpdate: _calcScore,
-                
                 onTindakanChanged: (val) => setState(() {
                   form['tindakan'] = val;
                   if (val != 'Eksekusi Rutin') {
@@ -530,15 +580,17 @@ List<WaterLevelMaster> get filteredWaterLevels {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue.shade800,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   child: isSubmitting
                       ? const SizedBox(
-                          height: 24, 
-                          width: 24, 
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                        )
-                      : const Text("SIMPAN OBSERVASI", style: TextStyle(fontWeight: FontWeight.bold)),
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2))
+                      : const Text("SIMPAN OBSERVASI",
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
               const SizedBox(height: 50),

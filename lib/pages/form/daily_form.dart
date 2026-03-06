@@ -264,7 +264,6 @@ void _showPickerOptions(bool isBefore) {
       errorMessage = e.toString();
     }
     _showMessage(errorMessage, isError: true);
-    await _saveToOfflineQueue(submissionData, "Gagal kirim, masuk antrean.");
   } finally {
     if (mounted) setState(() => isSubmitting = false);
   }
@@ -368,13 +367,22 @@ void _showPickerOptions(bool isBefore) {
 
               const SizedBox(height: 20),
 
-              // GPS CARD
-              GpsCard(
-                lat: form['lat_aktual'],
-                long: form['long_aktual'],
-                onTap: isGettingGps ? null : _getGeoLocation,
-                isLoading: isGettingGps,
-              ),
+            GpsCard(
+  lat: form['lat_aktual'],
+  long: form['long_aktual'],
+  isLoading: isGettingGps,
+  onTap: isGettingGps ? null : _getGeoLocation, 
+  onLatChanged: (val) {
+    setState(() {
+      form['lat_aktual'] = val;
+    });
+  },
+  onLongChanged: (val) {
+    setState(() {
+      form['long_aktual'] = val;
+    });
+  },
+),
 
               const SizedBox(height: 20),
 

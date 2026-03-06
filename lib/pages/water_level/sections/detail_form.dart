@@ -12,6 +12,8 @@ class DetailForm extends StatelessWidget {
   final Function(String?) onTindakanChanged;
   final WaterLevelMaster? selectedWaterLevelMaster;
   final Function(WaterLevelMaster?) onWaterLevelMasterChanged;
+    final Map<String, double>? distanceMap;
+
 
   const DetailForm({
     super.key,
@@ -23,6 +25,7 @@ class DetailForm extends StatelessWidget {
     required this.onTindakanChanged,
     this.selectedWaterLevelMaster,
     required this.onWaterLevelMasterChanged,
+    this.distanceMap,
   });
 
   // --- Helpers ---
@@ -82,7 +85,20 @@ class DetailForm extends StatelessWidget {
               items: waterLevelMasterData,
               value: selectedWaterLevelMaster,
               hint: "Cari No Water Level...",
-              itemLabel: (item) => item.no_wl.toString(),
+              itemLabel: (item) {
+                String distanceText = "";
+                if (distanceMap != null) {
+                  double? dist = distanceMap![item.id.toString()];
+                  if (dist != null && dist != 999999999.0) {
+                    if (dist > 1000) {
+                      distanceText = " - ${(dist / 1000).toStringAsFixed(2)} km";
+                    } else {
+                      distanceText = " - ${dist.toStringAsFixed(0)} m";
+                    }
+                  }
+                }
+                return "${item.no_wl}$distanceText";
+              },
               onChanged: onWaterLevelMasterChanged,
             ),
           ),

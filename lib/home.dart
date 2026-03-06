@@ -11,6 +11,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final GlobalKey<FormQueuePageState> _historyKey = GlobalKey();
   int _selectedIndex = 0;
   final MasterDataService _masterService = MasterDataService();
   bool _isLoading = false;
@@ -84,14 +85,18 @@ Future<void> _checkDataAvailability() async {
       }
     }
   }
-  void _onItemTapped(int index) {
-    if (index == 1 && !_hasMasterData) {
-      _showSyncDialog();
-      return;
-    }
-    setState(() => _selectedIndex = index);
+void _onItemTapped(int index) {
+  if (index == 1 && !_hasMasterData) {
+    _showSyncDialog();
+    return;
   }
-
+  
+  if (index == 2) {
+    _historyKey.currentState?.refreshData(); 
+  }
+  
+  setState(() => _selectedIndex = index);
+}
   // --- UI HELPER METHODS ---
 
   void _showSnackBar(String message, Color bgColor) {
@@ -140,7 +145,7 @@ Future<void> _checkDataAvailability() async {
       appBar: CustomWavyAppBar(
         title: _selectedIndex == 0 
             ? "Beranda" 
-            : (_selectedIndex == 1 ? "Input Observasi" : "Antrean Data"),
+            : (_selectedIndex == 1 ? "Input Observasi" : "History"),
         isLoading: _isLoading,
       ),
       body: IndexedStack(
@@ -154,7 +159,7 @@ Future<void> _checkDataAvailability() async {
             waterLevelMasterData: _listWaterLevelMaster,
             infrastructureMasterData: _listInfrastructureMaster,
           ),
-          const FormQueuePage()
+FormQueuePage(key: _historyKey),
         ],
       ),
       bottomNavigationBar: Container(

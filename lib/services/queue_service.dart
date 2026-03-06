@@ -179,6 +179,44 @@ class QueueService {
       print("⚠️ Gagal hapus file $path: $e");
     }
   }
+  Future<void> deleteDataOlderThan(int days) async {
+    try {
+      final db = await database;
+      
+      final DateTime thresholdDate = DateTime.now().subtract(Duration(days: days));
+      final String dateString = thresholdDate.toIso8601String(); 
+
+      print("🧹 [QUEUE CLEANUP] Mencari riwayat Terkirim sebelum: $dateString...");
+
+      final List<Map<String, dynamic>> oldItems = await db.query(
+        'queue', 
+        where: 'created_at < ? AND is_synced = 1', 
+        whereArgs: [dateString],
+      );
+
+      if (oldItems.isEmpty) {
+        print("✨ [QUEUE CLEANUP] Tidak ada riwayat lama yang perlu dihapus.");
+        return;
+      }
+
+      // 2. Hapus file fisik foto dari memori HP menggunakan helper yang sudah Anda buat
+      for (var item in oldItems) {
+        await _deleteLocalFile(item['photo_before_path']);
+        await _deleteLocalFile(item['photo_after_path']);
+      }
+
+      // 3. Hapus baris data dari database SQLite
+      int count = await db.delete(
+        'queue', 
+        where: 'created_at < ? AND is_synced = 1',
+        whereArgs: [dateString],
+      );
+      
+      print("✅ [QUEUE CLEANUP] Berhasil membersihkan $count data riwayat (> $days hari) beserta fotonya.");
+    } catch (e) {
+      print("❌ [QUEUE CLEANUP ERROR] Gagal menghapus data lama: $e");
+    }
+  }
 
   Future<String?> _saveToPermanentStorage(String? tempPath) async {
     if (tempPath == null) return null;

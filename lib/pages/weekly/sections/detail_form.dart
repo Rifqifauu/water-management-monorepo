@@ -12,6 +12,7 @@ class DetailForm extends StatelessWidget {
   final List<InfrastructureMaster> infrastructureMasterData;
   final InfrastructureMaster? selectedInfrastructureMaster;
   final Function(InfrastructureMaster?) onInfrastructureMasterChanged;
+  final Map<String, double>? distanceMap;
 
   const DetailForm({
     super.key,
@@ -23,11 +24,8 @@ class DetailForm extends StatelessWidget {
     required this.infrastructureMasterData,
     this.selectedInfrastructureMaster,
     required this.onInfrastructureMasterChanged,
-
+    this.distanceMap,
   });
-
-  // --- Helpers ---
-
   List<String> _getOptions(String param) {
     return skoringData
         .where((s) =>
@@ -59,12 +57,9 @@ class DetailForm extends StatelessWidget {
         borderSide: BorderSide(color: Colors.grey[200]!),
       ),
     );
-
-    // Persiapkan Opsi
     final optionsAliran = _getOptions('Aliran');
     final optionsPenyebab = _getOptions('Penyebab');
     final optionsTindakan = _getOptions('Tindakan');
-// ... bagian atas kode tetap sama ...
 
     return SectionCard(
       title: "Detail Lapangan",
@@ -73,37 +68,52 @@ class DetailForm extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-Row(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    Expanded(
-      child: SearchableSelect<InfrastructureMaster>(
-        label: "No Infrastructure",
-        items: infrastructureMasterData,
-        value: selectedInfrastructureMaster,             
-        hint: "Cari No Infrastructure...",
-        itemLabel: (item) => "${item.id_object}",
-        onChanged: (master) {
-          form['jenis_infrastruktur'] = master?.category ?? '-';
-          onInfrastructureMasterChanged(master);
-          onUpdate();
-        },
-      ),
-    ),
-    const SizedBox(width: 16),
-    Expanded(
-      child: _buildTextField(
-        label: "Jenis Infrastruktur",
-        initialValue: form['jenis_infrastruktur'] ?? '-', 
-        decoration: inputDecor.copyWith(
-          fillColor: Colors.grey[200], // Gelapkan sedikit agar terlihat readonly
-        ),
-        readOnly: true,
-        onChanged: (_) {}, 
-      ),
-    ),
-  ],
-),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: SearchableSelect<InfrastructureMaster>(
+                  label: "No Infrastructure",
+                  items: infrastructureMasterData,
+                  value: selectedInfrastructureMaster,
+                  hint: "Cari No Infrastructure...",
+                  itemLabel: (item) {
+                    String distanceText = "";
+                    if (distanceMap != null) {
+                      double? dist = distanceMap![item.id.toString()];
+                      if (dist != null && dist != 999999999.0) {
+                        if (dist > 1000) {
+                          distanceText =
+                              " - ${(dist / 1000).toStringAsFixed(2)} km";
+                        } else {
+                          distanceText = " - ${dist.toStringAsFixed(0)} m";
+                        }
+                      }
+                    }
+                    return "${item.id_object}$distanceText";
+                  },
+                  onChanged: (master) {
+                    form['jenis_infrastruktur'] = master?.category ?? '-';
+                    onInfrastructureMasterChanged(master);
+                    onUpdate();
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildTextField(
+                  label: "Jenis Infrastruktur",
+                  initialValue: form['jenis_infrastruktur'] ?? '-',
+                  decoration: inputDecor.copyWith(
+                    fillColor: Colors
+                        .grey[200], // Gelapkan sedikit agar terlihat readonly
+                  ),
+                  readOnly: true,
+                  onChanged: (_) {},
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 20),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,12 +183,13 @@ Row(
           ),
         ),
         TextFormField(
-          key: Key(initialValue ?? ''), // Penting agar text terupdate saat state berubah
+          key: Key(initialValue ??
+              ''), // Penting agar text terupdate saat state berubah
           initialValue: initialValue,
           decoration: decoration,
           readOnly: readOnly,
           style: TextStyle(
-            fontSize: 13, 
+            fontSize: 13,
             color: readOnly ? Colors.grey[700] : Colors.black,
           ),
           onChanged: onChanged,
@@ -186,7 +197,6 @@ Row(
       ],
     );
   }
-
 
   Widget _buildScoredDropdown({
     required String label,

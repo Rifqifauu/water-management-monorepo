@@ -17,7 +17,7 @@ class WeeklyForm extends StatefulWidget {
   final List<SkoringConfig> skoringData;
   final List<KaryawanModel> listKaryawan;
   final List<LokasiModel> listLokasi;
-  final List<InfrastructureMaster> infrastructureMasterData;  
+  final List<InfrastructureMaster> infrastructureMasterData;
   final InfrastructureMaster? initialInfrastructure;
   const WeeklyForm({
     super.key,
@@ -41,7 +41,7 @@ class _WeeklyFormState extends State<WeeklyForm> {
   KaryawanModel? selectedKaryawan;
   String? selectedAfdeling;
   LokasiModel? selectedLokasi;
-  InfrastructureMaster? selectedInfrastructureMaster; 
+  InfrastructureMaster? selectedInfrastructureMaster;
 
   File? photoBefore, photoAfter;
 
@@ -49,7 +49,7 @@ class _WeeklyFormState extends State<WeeklyForm> {
     'tanggal': DateFormat('yyyy-MM-dd').format(DateTime.now()),
     'jenis_infrastruktur': null,
     'nomor_jalur': '', // Jika tidak dipakai, biarkan kosong
-    'id_objek': null,  // ID Infrastruktur
+    'id_objek': null, // ID Infrastruktur
     'kondisi_aliran': null,
     'penyebab': null,
     'tindakan': null,
@@ -57,46 +57,83 @@ class _WeeklyFormState extends State<WeeklyForm> {
     'long_aktual': '',
   };
 
+  Map<String, double> distanceMap = {};
+
   List<InfrastructureMaster> get filteredInfrastructures {
-    List<InfrastructureMaster> data = List.from(widget.infrastructureMasterData);
+    List<InfrastructureMaster> data =
+        List.from(widget.infrastructureMasterData);
+
     if (selectedLokasi != null) {
       data = data.where((item) {
         return item.id_lokasi.toString() == selectedLokasi!.id.toString();
       }).toList();
     }
-    if (form['lat_aktual'] != '' && form['long_aktual'] != '') {
+
+    if (form['lat_aktual'] != null &&
+        form['lat_aktual'].toString().isNotEmpty &&
+        form['long_aktual'] != null &&
+        form['long_aktual'].toString().isNotEmpty) {
       try {
-        double userLat = double.parse(form['lat_aktual']);
-        double userLong = double.parse(form['long_aktual']);
+        double userLat = double.parse(
+            form['lat_aktual'].toString().replaceAll(',', '.').trim());
+        double userLong = double.parse(
+            form['long_aktual'].toString().replaceAll(',', '.').trim());
+
+        debugPrint("\n=== 📍 MULAI KALKULASI & SORTING JARAK ===");
+        debugPrint("Koordinat User Aktual: Lat $userLat, Long $userLong");
+
+        distanceMap.clear();
+
+        for (var item in data) {
+          double dist = _calculateDistance(
+              userLat, userLong, item.latitude, item.longitude);
+
+          distanceMap[item.id.toString()] = dist;
+
+          String distanceText = dist == 999999999.0
+              ? 'Tidak valid/Kosong'
+              : '${dist.toStringAsFixed(2)} meter';
+
+          debugPrint(
+              "🚗 ID: ${item.id} | Kat: ${item.category} | Lat: ${item.latitude}, Long: ${item.longitude} | Jarak: $distanceText");
+        }
 
         data.sort((a, b) {
-          double distA = _calculateDistance(userLat, userLong, a.latitude, a.longitude);
-          double distB = _calculateDistance(userLat, userLong, b.latitude, b.longitude);
+          double distA = distanceMap[a.id.toString()] ?? 999999999.0;
+          double distB = distanceMap[b.id.toString()] ?? 999999999.0;
           return distA.compareTo(distB);
         });
+
+        debugPrint("=== ✅ SORTING LOKASI SELESAI ===\n");
       } catch (e) {
-        debugPrint("Error sorting distance: $e");
+        debugPrint("❌ Error saat sorting distance: $e");
       }
     }
 
     return data;
   }
 
-  double _calculateDistance(double startLat, double startLng, String? endLatStr, String? endLngStr) {
-    if (endLatStr == null || endLngStr == null || endLatStr.isEmpty || endLngStr.isEmpty) {
-      return double.infinity;
+  double _calculateDistance(
+      double startLat, double startLng, String? endLatStr, String? endLngStr) {
+    if (endLatStr == null ||
+        endLngStr == null ||
+        endLatStr.trim().isEmpty ||
+        endLngStr.trim().isEmpty) {
+      return 999999999.0;
     }
     try {
-      double endLat = double.parse(endLatStr);
-      double endLng = double.parse(endLngStr);
+      double endLat = double.parse(endLatStr.replaceAll(',', '.').trim());
+      double endLng = double.parse(endLngStr.replaceAll(',', '.').trim());
       return Geolocator.distanceBetween(startLat, startLng, endLat, endLng);
     } catch (e) {
-      return double.infinity;
+      // Tambahkan info titik koordinat mana yang bikin error
+      debugPrint(
+          "⚠️ Error parsing koordinat infrastruktur (Lat: $endLatStr, Long: $endLngStr): $e");
+      return 999999999.0;
     }
   }
 
   Map<String, int> scores = {'aliran': 0, 'penyebab': 0, 'tindakan': 0};
-
   @override
   void initState() {
     super.initState();
@@ -108,14 +145,16 @@ class _WeeklyFormState extends State<WeeklyForm> {
   void _calcScore() {
     int getSkor(String parameter, dynamic value) {
       if (value == null || value.toString().isEmpty) return 0;
-      final criteria = widget.skoringData.where((s) => 
-        (s.unit == 'Infrastruktur' || s.unit == form['jenis_infrastruktur']) && 
-        s.parameter == parameter
-      );
+      final criteria = widget.skoringData.where((s) =>
+          (s.unit == 'Infrastruktur' ||
+              s.unit == form['jenis_infrastruktur']) &&
+          s.parameter == parameter);
       if (criteria.isEmpty) return 0;
       try {
         var match = criteria.firstWhere(
-          (c) => c.labelKondisi?.trim().toLowerCase() == value.toString().trim().toLowerCase(),
+          (c) =>
+              c.labelKondisi?.trim().toLowerCase() ==
+              value.toString().trim().toLowerCase(),
           orElse: () => SkoringConfig(unit: '', parameter: '', skor: 0),
         );
         return match.skor;
@@ -171,7 +210,8 @@ class _WeeklyFormState extends State<WeeklyForm> {
           form['lat_aktual'] = lastPos.latitude.toString();
           form['long_aktual'] = lastPos.longitude.toString();
         });
-        _showMessage("Gagal lock GPS akurat. Menggunakan lokasi terakhir.", isError: false, color: Colors.orange);
+        _showMessage("Gagal lock GPS akurat. Menggunakan lokasi terakhir.",
+            isError: false, color: Colors.orange);
       } else {
         _showMessage("Gagal mendapatkan lokasi GPS.", isError: true);
       }
@@ -179,6 +219,7 @@ class _WeeklyFormState extends State<WeeklyForm> {
       setState(() => isGettingGps = false);
     }
   }
+
   Future<void> _pickImage(bool isBefore, ImageSource source) async {
     try {
       final f = await ImagePicker().pickImage(
@@ -187,7 +228,8 @@ class _WeeklyFormState extends State<WeeklyForm> {
       );
 
       if (f != null) {
-        setState(() => isBefore ? photoBefore = File(f.path) : photoAfter = File(f.path));
+        setState(() =>
+            isBefore ? photoBefore = File(f.path) : photoAfter = File(f.path));
       }
     } catch (e) {
       _showMessage("Gagal mengambil foto: $e", isError: true);
@@ -197,19 +239,26 @@ class _WeeklyFormState extends State<WeeklyForm> {
   void _showPickerOptions(bool isBefore) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt, color: Colors.blue),
               title: const Text('Ambil dari Kamera'),
-              onTap: () { Navigator.pop(context); _pickImage(isBefore, ImageSource.camera); },
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(isBefore, ImageSource.camera);
+              },
             ),
             ListTile(
               leading: const Icon(Icons.photo_library, color: Colors.green),
               title: const Text('Pilih dari Galeri'),
-              onTap: () { Navigator.pop(context); _pickImage(isBefore, ImageSource.gallery); },
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(isBefore, ImageSource.gallery);
+              },
             ),
           ],
         ),
@@ -218,7 +267,7 @@ class _WeeklyFormState extends State<WeeklyForm> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;    
+    if (!_formKey.currentState!.validate()) return;
     if (selectedLokasi == null) {
       _showMessage("Pilih Lokasi (Blok) terlebih dahulu!", isError: true);
       return;
@@ -247,26 +296,28 @@ class _WeeklyFormState extends State<WeeklyForm> {
         'submitted_at': DateTime.now().toIso8601String(),
       };
       final connectivityResult = await Connectivity().checkConnectivity();
-      final bool isOnline = !connectivityResult.contains(ConnectivityResult.none);
+      final bool isOnline =
+          !connectivityResult.contains(ConnectivityResult.none);
       if (isOnline) {
-        await _apiService.submitMingguan(submissionData, photoBefore, photoAfter);
-        _showMessage("Data Berhasil Terkirim!", isError: false);        
+        await _apiService.submitMingguan(
+            submissionData, photoBefore, photoAfter);
+        _showMessage("Data Berhasil Terkirim!", isError: false);
         await _saveToHistory(submissionData);
       } else {
         await _saveToOfflineQueue(submissionData);
-        _showMessage("Offline: Data disimpan di antrean.", isError: false, color: Colors.orange);
+        _showMessage("Offline: Data disimpan di antrean.",
+            isError: false, color: Colors.orange);
       }
       _resetForm();
-
     } catch (e) {
       String errorMessage = "Terjadi Kesalahan";
       if (e is DioException) {
-        errorMessage = "Server Error: ${e.response?.data?['message'] ?? e.message}";
+        errorMessage =
+            "Server Error: ${e.response?.data?['message'] ?? e.message}";
       } else {
         errorMessage = e.toString();
       }
       _showMessage(errorMessage, isError: true);
-      await _saveToOfflineQueue(submissionData); 
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
@@ -311,6 +362,7 @@ class _WeeklyFormState extends State<WeeklyForm> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -329,15 +381,16 @@ class _WeeklyFormState extends State<WeeklyForm> {
                 selectedKaryawan: selectedKaryawan,
                 selectedAfdeling: selectedAfdeling,
                 selectedLokasi: selectedLokasi,
-                onKaryawanChanged: (val) => setState(() => selectedKaryawan = val),
+                onKaryawanChanged: (val) =>
+                    setState(() => selectedKaryawan = val),
                 onAfdelingChanged: (val) => setState(() {
                   selectedAfdeling = val;
-                  selectedLokasi = null; 
-                  selectedInfrastructureMaster = null; 
+                  selectedLokasi = null;
+                  selectedInfrastructureMaster = null;
                 }),
                 onLokasiChanged: (val) => setState(() {
                   selectedLokasi = val;
-                  selectedInfrastructureMaster = null; 
+                  selectedInfrastructureMaster = null;
                 }),
                 onTipeObjekChanged: (_) {},
               ),
@@ -345,33 +398,44 @@ class _WeeklyFormState extends State<WeeklyForm> {
               GpsCard(
                 lat: form['lat_aktual'],
                 long: form['long_aktual'],
-                onTap: isGettingGps ? null : _getGeoLocation, 
                 isLoading: isGettingGps,
+                onTap: isGettingGps ? null : _getGeoLocation,
+                onLatChanged: (val) {
+                  setState(() {
+                    form['lat_aktual'] = val;
+                  });
+                },
+                onLongChanged: (val) {
+                  setState(() {
+                    form['long_aktual'] = val;
+                  });
+                },
               ),
               const SizedBox(height: 20),
-          DetailForm(
-                form: form,
-                scores: scores,
-                skoringData: widget.skoringData,                
-                infrastructureMasterData: filteredInfrastructures, 
-                selectedInfrastructureMaster: selectedInfrastructureMaster,
-                onInfrastructureMasterChanged: (master) {
+            DetailForm(
+  form: form,
+  scores: scores,
+  skoringData: widget.skoringData,                
+  infrastructureMasterData: filteredInfrastructures, 
+  distanceMap: distanceMap, 
+  selectedInfrastructureMaster: selectedInfrastructureMaster,
+  onInfrastructureMasterChanged: (master) {
                   setState(() {
                     selectedInfrastructureMaster = master;
                     if (master != null) {
                       form['jenis_infrastruktur'] = master.category;
-                      form['id_objek'] = master.id_object; 
+                      form['id_objek'] = master.id_object;
                       form['kondisi_aliran'] = null;
                       form['penyebab'] = null;
                     }
                   });
-                  _calcScore(); 
+                  _calcScore();
                 },
                 onUpdate: _calcScore,
                 onTindakanChanged: (val) => setState(() {
                   form['tindakan'] = val;
                   if (val != 'Eksekusi Rutin') {
-                     photoAfter = null; 
+                    photoAfter = null;
                   }
                   _calcScore();
                 }),
@@ -395,16 +459,18 @@ class _WeeklyFormState extends State<WeeklyForm> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue.shade800,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     elevation: 3,
                   ),
                   child: isSubmitting
                       ? const SizedBox(
-                          height: 24, 
-                          width: 24, 
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                        )
-                      : const Text("SIMPAN OBSERVASI", style: TextStyle(fontWeight: FontWeight.bold)),
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2))
+                      : const Text("SIMPAN OBSERVASI",
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
               const SizedBox(height: 50),
@@ -419,19 +485,25 @@ class _WeeklyFormState extends State<WeeklyForm> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [Colors.blue.shade800, Colors.blue.shade500]),
+        gradient: LinearGradient(
+            colors: [Colors.blue.shade800, Colors.blue.shade500]),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))
+          BoxShadow(
+              color: Colors.blue.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4))
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text("Rata-rata Skor", style: TextStyle(color: Colors.white, fontSize: 16)),
+          const Text("Rata-rata Skor",
+              style: TextStyle(color: Colors.white, fontSize: 16)),
           Text(
             averageScore,
-            style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
           ),
         ],
       ),

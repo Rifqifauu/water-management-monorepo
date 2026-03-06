@@ -11,11 +11,10 @@ class FormQueuePage extends StatefulWidget {
   const FormQueuePage({super.key});
 
   @override
-  State<FormQueuePage> createState() => _FormQueuePageState();
+  State<FormQueuePage> createState() => FormQueuePageState();
 }
 
-class _FormQueuePageState extends State<FormQueuePage> with SingleTickerProviderStateMixin {
-  final QueueService _queueService = QueueService();
+class FormQueuePageState extends State<FormQueuePage> with SingleTickerProviderStateMixin {  final QueueService _queueService = QueueService();
   final ApiService _apiService = ApiService();
   late TabController _tabController;
 
@@ -31,8 +30,12 @@ class _FormQueuePageState extends State<FormQueuePage> with SingleTickerProvider
   bool _isLoadingMore = false;
   int _syncIndex = 0;
   int _totalSync = 0;
-
+void refreshData() {
+  _loadUnsyncedData();
+  _loadSyncedData(loadMore: false);
+}
   @override
+@override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);    
@@ -44,8 +47,9 @@ class _FormQueuePageState extends State<FormQueuePage> with SingleTickerProvider
       }
     });
 
-    initializeDateFormatting('id_ID', null).then((_) {
-      _loadUnsyncedData();
+    initializeDateFormatting('id_ID', null).then((_) async {
+      await _queueService.deleteDataOlderThan(7); 
+            _loadUnsyncedData();
       _loadSyncedData(loadMore: false);
     });
   }
