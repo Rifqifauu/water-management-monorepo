@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class WaterLevelMaster extends Model
+class InfrastructureMaster extends Model
 {
     protected $fillable = [
-        'no_wl',
         'id_lokasi',
+        'id_object',
+        'category',
         'latitude',
         'longitude',
     ];

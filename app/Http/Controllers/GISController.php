@@ -52,6 +52,7 @@ class GISController extends Controller
                     'skor_titik'           => $item->rata_rata_skor,
                     'tanggal'              => Carbon::parse($item->tanggal)->format('d-m-Y'),
                     'foto_path'            => $item->foto_path,
+                    'foto_after'           => $item->foto_after,
                 ];
             });
 
@@ -140,10 +141,12 @@ class GISController extends Controller
                     'jenis'     => $item->jenis_infrastruktur,
                     'status'    => StatusHelper::determineStatus($item->rata_rata_skor)['kategori'],
                     'skor'      => number_format($item->rata_rata_skor, 2),
+                    'tindakan'   => $item->tindakan,
                     'tanggal'   => Carbon::parse($item->tanggal)->format('d-m-Y'),
                     'lat'       => (float) $item->lat_aktual,
                     'long'      => (float) $item->long_aktual,
                     'foto_path' => $item->foto_path,
+                    'foto_after'=> $item->foto_after,
                 ];
             });
 
@@ -185,6 +188,7 @@ class GISController extends Controller
                     'lat'            => (float) $item->lat_aktual,
                     'long'           => (float) $item->long_aktual,
                     'foto_path'      => $item->foto_path,
+                    'foto_after'     => $item->foto_after,
                 ];
             });
 

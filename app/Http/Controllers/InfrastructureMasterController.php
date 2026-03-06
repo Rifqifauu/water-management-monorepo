@@ -2,43 +2,56 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\WaterLevelMaster;
+use App\Models\InfrastructureMaster;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Validator;
 
-class WaterLevelMasterController extends Controller
+class InfrastructureMasterController extends Controller
 {
-    public function listWaterLevelMaster()
+    public function listInfrastructureMaster()
     {
-        $waterLevelMaster = WaterLevelMaster::with('lokasi')
-            ->select('id', 'id_lokasi', 'no_wl', 'latitude', 'longitude')
+        $infrastructureMaster = InfrastructureMaster::select('id', 'id_lokasi', 'id_object', 'category','latitude','longitude')
             ->get();
-        return response()->json($waterLevelMaster);
+        return response()->json($infrastructureMaster);
     }
 
     public function index(Request $request)
     {
-        $query = WaterLevelMaster::with('lokasi');
+        $query = InfrastructureMaster::with('lokasi');
 
         if ($request->filled('search')) {
-            $query->where('no_wl', 'like', '%' . $request->search . '%')
-                  ->orWhereHas('lokasi', function($q) use ($request) {
-                      $q->where('afdeling', 'like', '%' . $request->search . '%')
+            $query->where(function($q) use ($request) {
+                $q->where('id_object', 'like', '%' . $request->search . '%')
+                  ->orWhereHas('lokasi', function($l) use ($request) {
+                      $l->where('afdeling', 'like', '%' . $request->search . '%')
                         ->orWhere('blok', 'like', '%' . $request->search . '%');
                   });
+            });
+        }
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
         }
 
         $data = $query->paginate(10); 
         return response()->json($data);
+    }
+    public function show($id)
+    {
+        $infrastructureMaster = InfrastructureMaster::with('lokasi')->find($id);
+        if (!$infrastructureMaster) {
+            return response()->json(['message' => 'Data tidak ditemukan'], 404);
+        }
+        return response()->json($infrastructureMaster);
     }
 
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'id_lokasi' => 'required|exists:lokasi,id',
-            'no_wl' => 'required|string|unique:water_level_masters,no_wl',
-            'latitude' => 'nullable',
+            'id_object' => 'required|string|unique:infrastructure_masters,id_object',
+            'category'  => 'required|string|max:255',
+            'latitude'  => 'nullable',
             'longitude' => 'nullable',
         ]);
 
@@ -51,13 +64,14 @@ class WaterLevelMasterController extends Controller
         }
 
         try {
-            $waterLevelMaster = WaterLevelMaster::create($validator->validated());
-            // Load relasi setelah create agar response lengkap
-            $waterLevelMaster->load('lokasi');
+            $infrastructureMaster = InfrastructureMaster::create($validator->validated());
+            
+            // Memuat data lokasi setelah berhasil simpan
+            $infrastructureMaster->load('lokasi');
 
             return response()->json([
                 'message' => 'Data berhasil disimpan',
-                'data'    => $waterLevelMaster
+                'data'    => $infrastructureMaster
             ], 201);
         } catch (QueryException $e) {
             return response()->json([
@@ -68,16 +82,17 @@ class WaterLevelMasterController extends Controller
 
     public function update(Request $request, $id)
     {
-        $waterLevelMaster = WaterLevelMaster::find($id);
+        $infrastructureMaster = InfrastructureMaster::find($id);
 
-        if (!$waterLevelMaster) {
+        if (!$infrastructureMaster) {
             return response()->json(['message' => 'Data tidak ditemukan'], 404);
         }
 
         $validator = Validator::make($request->all(), [
             'id_lokasi' => 'required|exists:lokasi,id',
-            'no_wl' => 'required|string|unique:water_level_masters,no_wl,' . $id,
-            'latitude' => 'nullable',
+            'id_object' => 'required|string|unique:infrastructure_masters,id_object,' . $id,
+            'category'  => 'required|string|max:255',
+            'latitude'  => 'nullable',
             'longitude' => 'nullable',
         ]);
 
@@ -90,13 +105,12 @@ class WaterLevelMasterController extends Controller
         }
 
         try {
-            $waterLevelMaster->update($validator->validated());
-            // Load relasi setelah update
-            $waterLevelMaster->load('lokasi');
+            $infrastructureMaster->update($validator->validated());
+                        $infrastructureMaster->load('lokasi');
 
             return response()->json([
                 'message' => 'Data berhasil diupdate',
-                'data'    => $waterLevelMaster
+                'data'    => $infrastructureMaster
             ], 200);
         } catch (QueryException $e) {
             return response()->json([
@@ -105,21 +119,13 @@ class WaterLevelMasterController extends Controller
         }
     }
 
-    public function show($id)
-    {
-        $waterLevelMaster = WaterLevelMaster::with('lokasi')->find($id);
-        if (!$waterLevelMaster) {
-            return response()->json(['message' => 'Data tidak ditemukan'], 404);
-        }
-        return response()->json($waterLevelMaster);
-    }
     public function destroy($id)
     {
-        $waterLevelMaster = WaterLevelMaster::find($id);
-        if (!$waterLevelMaster) {
+        $infrastructureMaster = InfrastructureMaster::find($id);
+        if (!$infrastructureMaster) {
             return response()->json(['message' => 'Data tidak ditemukan'], 404);
         }
-        $waterLevelMaster->delete();
+        $infrastructureMaster->delete();
         return response()->json(['message' => 'Data berhasil dihapus'], 200);
     }
 }

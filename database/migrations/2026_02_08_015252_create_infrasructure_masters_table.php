@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('infrasructure_masters', function (Blueprint $table) {
+        Schema::create('infrastructure_masters', function (Blueprint $table) {
             $table->id();
             $table->string('id_object')->unique();
             $table->string('category');

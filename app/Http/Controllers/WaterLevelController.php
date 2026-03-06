@@ -46,7 +46,7 @@ class WaterLevelController extends Controller
             'id_karyawan'        => 'required|exists:karyawan,id',
             'lat_aktual'         => 'nullable|numeric',
             'long_aktual'        => 'nullable|numeric',
-            'no_water_level'     => 'required|integer',
+            'no_water_level'     => 'required|string',
             'tinggi_level_air'   => 'required|numeric',
             'jarak_ke_bibir'     => 'required|numeric',
             'kondisi_aliran'     => 'required|string',

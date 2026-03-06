@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Lokasi; 
+use App\Models\Lokasi;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Validator;
@@ -11,24 +11,24 @@ class LokasiController extends Controller
 {
 
     public function listLokasi()
-{
-    $lokasi = Lokasi::select('id', 'afdeling', 'blok')->get();  
-    return response()->json($lokasi);
-}
-   public function index(Request $request)
-{
-    $query = Lokasi::query();
-
-
-    if ($request->filled('search')) {
-        $query->where('blok', 'like', '%' . $request->search . '%');
-        $query->orWhere('afdeling', 'like', '%' . $request->search . '%');
+    {
+        $lokasi = Lokasi::select('id', 'afdeling', 'blok')->get();
+        return response()->json($lokasi);
     }
+    public function index(Request $request)
+    {
+        $query = Lokasi::query();
 
-    $data = $query->paginate(10); // sesuaikan pagination
 
-    return response()->json($data);
-}
+        if ($request->filled('search')) {
+            $query->where('blok', 'like', '%' . $request->search . '%');
+            $query->orWhere('afdeling', 'like', '%' . $request->search . '%');
+        }
+
+        $data = $query->paginate(10); // sesuaikan pagination
+
+        return response()->json($data);
+    }
 
     public function show($id)
     {
@@ -55,12 +55,12 @@ class LokasiController extends Controller
             'batas_area' => 'nullable|json',
         ]);
         if ($validator->fails()) {
-    return response()->json([
-        'status'  => false,
-        'message' => 'Validasi Gagal', // Pesan umum
-        'errors'  => $validator->errors() // Detail field mana yang salah
-    ], 422);
-}
+            return response()->json([
+                'status'  => false,
+                'message' => 'Validasi Gagal', // Pesan umum
+                'errors'  => $validator->errors() // Detail field mana yang salah
+            ], 422);
+        }
 
         try {
             $lokasi = Lokasi::create($validator->validated());
@@ -69,7 +69,6 @@ class LokasiController extends Controller
                 'message' => 'Data berhasil disimpan',
                 'data'    => $lokasi
             ], 201);
-
         } catch (QueryException $e) {
             return response()->json([
                 'message' => 'Gagal menyimpan data ' . $e->getMessage()
@@ -94,13 +93,13 @@ class LokasiController extends Controller
             'batas_area' => 'nullable|json',
         ]);
 
-     if ($validator->fails()) {
-    return response()->json([
-        'status'  => false,
-        'message' => 'Validasi Gagal', // Pesan umum
-        'errors'  => $validator->errors() // Detail field mana yang salah
-    ], 422);
-}
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Validasi Gagal', // Pesan umum
+                'errors'  => $validator->errors() // Detail field mana yang salah
+            ], 422);
+        }
 
         try {
             $lokasi->update($validator->validated());
@@ -109,7 +108,6 @@ class LokasiController extends Controller
                 'message' => 'Data berhasil diupdate',
                 'data'    => $lokasi
             ], 200);
-
         } catch (QueryException $e) {
             return response()->json([
                 'message' => 'Gagal mengupdate data'
